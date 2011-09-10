@@ -16,7 +16,7 @@ Sample cover.spec for common_test:
 Screenshots
 -----------
 
-![Screenshot1](http://cloud.github.com/downloads/idubrov/covertool/shot1.png)
+![Screenshot1](screenshots/shot1.png)
 
-![Screenshot2](http://cloud.github.com/downloads/idubrov/covertool/shot2.png)
+![Screenshot2](screenshots/shot2.png)
 
