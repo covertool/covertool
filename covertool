@@ -1,6 +1,8 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
 
+-include_lib("xmerl/include/xmerl.hrl").
+
 -type metric() :: {Covered:: non_neg_integer(), Total :: non_neg_integer()}.
 -record(result, {line = {0, 0} :: Metric,
                  branches = {0, 0} :: Metric,
@@ -47,6 +49,7 @@ generate_report(Output) ->
     {BranchesCovered, BranchesValid} = Result#result.branches,
     BranchRate = rate(Result#result.branches),
 
+    Sources = filename:absname(get(src)),
     Root = {coverage, [{timestamp, Timestamp},
                        {'line-rate', LineRate},
                        {'lines-covered', LinesCovered},
@@ -56,7 +59,8 @@ generate_report(Output) ->
                        {'branches-valid', BranchesValid},
                        {complexity, Complexity},
                        {version, Version}],
-            [{packages, [Result#result.data]}]},
+            [{sources, [{source, [Sources]}]},
+             {packages, [Result#result.data]}]},
     Report = xmerl:export_simple([Root], xmerl_xml, [{prolog, Prolog}]),
     write_output(Report, Output),
     ok.
@@ -82,14 +86,15 @@ generate_classes() ->
     Result#result{data = Classes}.
 
 generate_class(Module) ->
-    Fun = fun({{_Module, Line}, {Cov, NotCov}}, Result) ->
-                  LineCoverage = sum(Result#result.line, {Cov, Cov + NotCov}),
+    Fun = fun({{_Module, Line}, Value}, Result) ->
+                  Covered = case Value of 0 -> 0; _Other -> 1 end,
+                  LineCoverage = sum(Result#result.line, {Covered, 1}),
                   Data = {line, [{number, Line},
-                                 {hits, Cov}],
+                                 {hits, Value}],
                           []},
                   {Data, Result#result{line = LineCoverage}}
           end,
-    {ok, Lines} = cover:analyse(Module, coverage, line),
+    {ok, Lines} = cover:analyse(Module, calls, line),
     {LinesData, Result} = lists:mapfoldl(Fun, #result{}, Lines),
 
     % [{Line,{Cov,NotCov}}]
@@ -129,7 +134,13 @@ rate({Covered, Valid}) -> [Res] = io_lib:format("~f", [Covered / Valid]), Res.
 lookup_source(Module) ->
     Sources = get(src),
     Glob = "^" ++ atom_to_list(Module) ++ "\.erl\$",
-    Fun = fun (Name, _In) -> Name end,
+    Fun = fun (Name, _In) ->
+                   % substract directory
+                   case lists:prefix(Sources, Name) of
+                       true -> lists:nthtail(length(Sources), Name);
+                       false -> Name
+                   end
+          end,
     filelib:fold_files(Sources, Glob, true, Fun, "").
 
 % Parse arguments into tuple list
