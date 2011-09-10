@@ -4,21 +4,24 @@ Cover-to-Cobertura Conversion Tool
 A simple tool to convert exported Erlang `cover` data sets into Cobertura XML
 reports. The report could be then feed to the Jenkins Cobertura plug-in.
 
-Usage:
+Usage
+-----
 
-0. Install Jenkins Cobertura Plug-in
-1. Configure `cover` to export data. Sample cover.spec for `Common Test`:
+Install Jenkins Cobertura Plug-in.
 
-    {incl_app, app0, details}.
-    {export, "all.coverdata"}.
+Configure `cover` to export data. Sample cover.spec for `Common Test`:
 
-2. Configure Jenkins to convert `cover` reports into `Cobertura` format:
+      {incl_app, app0, details}.
+      {export, "all.coverdata"}.
 
-    $ covertool -cover all.coverdata -output coverage.xml -src src/
+Configure Jenkins to convert `cover` reports into `Cobertura` format:
 
-3. Configure "Publish Cobertura Coverage Report" post-build action, set path
+      $ covertool -cover all.coverdata -output coverage.xml -src src/
+
+Configure "Publish Cobertura Coverage Report" post-build action, set path
 to the generated `coverage.xml`
-4. Run the build. At the end, "Coverage Report" link should appear on project page.
+
+Run the build. At the end, "Coverage Report" link should appear on project page.
 
 Screenshots
 -----------
