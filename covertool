@@ -5,19 +5,19 @@ main(Args) ->
     % default config
     DefConfig = [{cover, "all.coverdata"},
               {output, "coverage.xml"},
-              {sources, "src/"}],    
+              {sources, "src/"}],
     Config = scan_args(Args, DefConfig),
-    
+
     CoverData = proplists:get_value(cover, Config),
     io:format("Importing '~s' data file...~n", [CoverData]),
     cover:import(CoverData),
     io:format("Found ~w modules.~n", [length(cover:imported_modules())]),
 
     Output = proplists:get_value(output, Config),
-    io:format("Writing output report '~s'...~n", [Output]),
+
 
     generate_report(Output),
-    io:format("Done."),
+    io:format("Done.~n"),
     ok.
 
 usage() ->
@@ -26,6 +26,28 @@ usage() ->
     ok.
 
 generate_report(Output) ->
+    io:format("Generating report...~n"),
+    Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+              "<!DOCTYPE coverage SYSTEM \"http://cobertura.sourceforge.net/xml/coverage-04.dtd\">\n"],
+
+    {MegaSecs, Secs, MicroSecs} = now(),
+    Timestamp = MegaSecs * 1000000000 + Secs * 1000 + (MicroSecs div 1000), % in milliseconds
+
+    Root = {coverage, [{timestamp, Timestamp}], []},
+    Report = xmerl:export_simple([Root], xmerl_xml, [{prolog, Prolog}]),
+    write_output(Report, Output),
+    ok.
+
+write_output(Report, Output) ->
+    io:format("Writing output report '~s'...~n", [Output]),
+    case file:open(Output, [write, {encoding, utf8}]) of
+        {ok, Fd} ->
+            ok = file:write(Fd, [Report, "\n"]),
+            file:close(Fd);
+        {error, Reason} ->
+            io:format("Could not open '~s' due to ~p.~n", [Output, Reason]),
+            halt(1)
+    end,
     ok.
 
 % Parse arguments into tuple list
