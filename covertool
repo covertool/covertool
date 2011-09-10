@@ -3,17 +3,19 @@
 
 -include_lib("xmerl/include/xmerl.hrl").
 
--type metric() :: {Covered:: non_neg_integer(), Total :: non_neg_integer()}.
--record(result, {line = {0, 0} :: Metric,
-                 branches = {0, 0} :: Metric,
-                 data = [] :: term()}).
+-record(result, {line = {0, 0},
+                 branches = {0, 0},
+                 data = []}).
 
+main([]) ->
+    usage();
 main(Args) ->
     % we put all arguments process dictionary for simplicity
     % default config
     put(cover, "all.coverdata"),
     put(output, "coverage.xml"),
-    put(sources, "src/"),
+    put(src, "src/"),
+    put(appname, "Application"),
     scan_args(Args),
 
     CoverData = get(cover),
@@ -28,7 +30,11 @@ main(Args) ->
 
 usage() ->
     ScriptName = escript:script_name(),
-    io:format("Usage: ~s [-cover CoverDataFile] [-output CoberturaXML] [-src SourcesDir]~n", [ScriptName]),
+    io:format("Usage: ~s [Options]~n", [ScriptName]),
+    io:format("Options:~n"),
+    io:format("    -cover   CoverDataFile  Path to the cover exported data set (default: \"all.coverdata\")~n"),
+    io:format("    -output  OutputFile     File to put generated report to (default: \"coverage.xml\")~n"),
+    io:format("    -sources SourceDir      Directory to look for sources (default: \"src\")~n"),
     ok.
 
 generate_report(Output) ->
@@ -67,8 +73,9 @@ generate_report(Output) ->
 
 generate_packages() ->
     Classes = generate_classes(),
+    AppName = get(appname),
     % for now, the whole data file is a single "package"
-    Data = {package, [{name, "Erlang Application"},
+    Data = {package, [{name, AppName},
                       {'line-rate', rate(Classes#result.line)},
                       {'branch-rate', rate(Classes#result.branches)},
                       {complexity, 0}],
