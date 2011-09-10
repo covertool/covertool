@@ -1,0 +1,51 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+
+main(Args) ->
+    % default config
+    DefConfig = [{cover, "all.coverdata"},
+              {output, "coverage.xml"},
+              {sources, "src/"}],    
+    Config = scan_args(Args, DefConfig),
+    
+    CoverData = proplists:get_value(cover, Config),
+    io:format("Importing '~s' data file...~n", [CoverData]),
+    cover:import(CoverData),
+    io:format("Found ~w modules.~n", [length(cover:imported_modules())]),
+
+    Output = proplists:get_value(output, Config),
+    io:format("Writing output report '~s'...~n", [Output]),
+
+    generate_report(Output),
+    io:format("Done."),
+    ok.
+
+usage() ->
+    ScriptName = escript:script_name(),
+    io:format("Usage: ~s [-cover CoverDataFile] [-output CoberturaXML] [-src SourcesDir]~n", [ScriptName]),
+    ok.
+
+generate_report(Output) ->
+    ok.
+
+% Parse arguments into tuple list
+scan_args([], Args) -> Args;
+scan_args([[$- | Name] | Args], Config) ->
+    NameAtom = list_to_atom(Name),
+    {Value, Args2} =
+        case has_arg(NameAtom) of
+            true when length(Args) > 0 ->
+                {hd(Args), tl(Args)};
+            true -> usage(), halt(1);
+            false -> {true, Args}
+        end,
+    Config2 = lists:keystore(NameAtom, 1, Config, {NameAtom, Value}),
+    scan_args(Args2, Config2);
+scan_args(_Args, _Config) ->
+    usage(),
+    halt(1).
+
+has_arg(cover) -> true;
+has_arg(output) -> true;
+has_arg(src) -> true;
+has_arg(_Other) -> false.
