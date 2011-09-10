@@ -1,21 +1,25 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
 
-main(Args) ->
-    % default config
-    DefConfig = [{cover, "all.coverdata"},
-              {output, "coverage.xml"},
-              {sources, "src/"}],
-    Config = scan_args(Args, DefConfig),
+-type metric() :: {Covered:: non_neg_integer(), Total :: non_neg_integer()}.
+-record(result, {line = {0, 0} :: Metric,
+                 branches = {0, 0} :: Metric,
+                 data = [] :: term()}).
 
-    CoverData = proplists:get_value(cover, Config),
+main(Args) ->
+    % we put all arguments process dictionary for simplicity
+    % default config
+    put(cover, "all.coverdata"),
+    put(output, "coverage.xml"),
+    put(sources, "src/"),
+    scan_args(Args),
+
+    CoverData = get(cover),
     io:format("Importing '~s' data file...~n", [CoverData]),
     cover:import(CoverData),
     io:format("Found ~w modules.~n", [length(cover:imported_modules())]),
 
-    Output = proplists:get_value(output, Config),
-
-
+    Output = get(output),
     generate_report(Output),
     io:format("Done.~n"),
     ok.
@@ -33,10 +37,70 @@ generate_report(Output) ->
     {MegaSecs, Secs, MicroSecs} = now(),
     Timestamp = MegaSecs * 1000000000 + Secs * 1000 + (MicroSecs div 1000), % in milliseconds
 
-    Root = {coverage, [{timestamp, Timestamp}], []},
+    Version = "1.9.4.1", % emulate Cobertura 1.9.4.1
+    Complexity = 0,
+
+    Result = generate_packages(),
+    {LinesCovered, LinesValid} = Result#result.line,
+    LineRate = rate(Result#result.line),
+
+    {BranchesCovered, BranchesValid} = Result#result.branches,
+    BranchRate = rate(Result#result.branches),
+
+    Root = {coverage, [{timestamp, Timestamp},
+                       {'line-rate', LineRate},
+                       {'lines-covered', LinesCovered},
+                       {'lines-valid', LinesValid},
+                       {'branch-rate', BranchRate},
+                       {'branches-covered', BranchesCovered},
+                       {'branches-valid', BranchesValid},
+                       {complexity, Complexity},
+                       {version, Version}],
+            [{packages, [Result#result.data]}]},
     Report = xmerl:export_simple([Root], xmerl_xml, [{prolog, Prolog}]),
     write_output(Report, Output),
     ok.
+
+generate_packages() ->
+    Classes = generate_classes(),
+    % for now, the whole data file is a single "package"
+    Data = {package, [{name, "Erlang Application"},
+                      {'line-rate', rate(Classes#result.line)},
+                      {'branch-rate', rate(Classes#result.branches)},
+                      {complexity, 0}],
+            [{classes, Classes#result.data}]},
+    Classes#result{data = Data}. % leave the metrics as is
+
+% generate <classes> element, each Erlang module is "class"
+generate_classes() ->
+    % generate XML for every class, collect summary metric
+    Fun = fun(Module, Result) ->
+                  Class = generate_class(Module),
+                  {Class#result.data, sum(Result, Class)}
+          end,
+    {Classes, Result} = lists:mapfoldl(Fun, #result{}, cover:imported_modules()),
+    Result#result{data = Classes}.
+
+generate_class(Module) ->
+    Fun = fun({{_Module, Line}, {Cov, NotCov}}, Result) ->
+                  LineCoverage = sum(Result#result.line, {Cov, Cov + NotCov}),
+                  Data = {line, [{number, Line},
+                                 {hits, Cov}],
+                          []},
+                  {Data, Result#result{line = LineCoverage}}
+          end,
+    {ok, Lines} = cover:analyse(Module, coverage, line),
+    {LinesData, Result} = lists:mapfoldl(Fun, #result{}, Lines),
+
+    % [{Line,{Cov,NotCov}}]
+    Data = {class, [{name, Module},
+                    {filename, lookup_source(Module)},
+                    {'line-rate', rate(Result#result.line)},
+                    {'branch-rate', rate(Result#result.branches)},
+                    {complexity, 0}],
+            [{methods, []},
+             {lines, LinesData}]},
+    #result{data = Data}.
 
 write_output(Report, Output) ->
     io:format("Writing output report '~s'...~n", [Output]),
@@ -50,9 +114,27 @@ write_output(Report, Output) ->
     end,
     ok.
 
+% sum metrics
+sum(#result{line = {LineCovered1, LineValid1}, branches = {BranchesCovered1, BranchesValid1}},
+    #result{line = {LineCovered2, LineValid2}, branches = {BranchesCovered2, BranchesValid2}}) ->
+    #result{line = {LineCovered1 + LineCovered2, LineValid1 + LineValid2},
+            branches = {BranchesCovered1 + BranchesCovered2, BranchesValid1 + BranchesValid2}};
+sum({Covered1, Valid1}, {Covered2, Valid2}) ->
+    {Covered1 + Covered2, Valid1 + Valid2}.
+
+rate({_Covered, 0}) -> "0.0";
+rate({Covered, Valid}) -> [Res] = io_lib:format("~f", [Covered / Valid]), Res.
+
+% lookup source in source directory
+lookup_source(Module) ->
+    Sources = get(src),
+    Glob = "^" ++ atom_to_list(Module) ++ "\.erl\$",
+    Fun = fun (Name, _In) -> Name end,
+    filelib:fold_files(Sources, Glob, true, Fun, "").
+
 % Parse arguments into tuple list
-scan_args([], Args) -> Args;
-scan_args([[$- | Name] | Args], Config) ->
+scan_args([]) -> ok;
+scan_args([[$- | Name] | Args]) ->
     NameAtom = list_to_atom(Name),
     {Value, Args2} =
         case has_arg(NameAtom) of
@@ -61,9 +143,9 @@ scan_args([[$- | Name] | Args], Config) ->
             true -> usage(), halt(1);
             false -> {true, Args}
         end,
-    Config2 = lists:keystore(NameAtom, 1, Config, {NameAtom, Value}),
-    scan_args(Args2, Config2);
-scan_args(_Args, _Config) ->
+    put(NameAtom, Value),
+    scan_args(Args2);
+scan_args(_Args) ->
     usage(),
     halt(1).
 
