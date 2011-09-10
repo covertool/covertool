@@ -16,7 +16,7 @@ Sample cover.spec for common_test:
 Screenshots
 -----------
 
-![Screenshot1](covertool/blob/master/screenshots/shot1.png)
+![Screenshot1](covertool/raw/master/screenshots/shot1.png)
 
-![Screenshot2](covertool/blob/master/screenshots/shot2.png)
+![Screenshot2](covertool/raw/master/screenshots/shot2.png)
 
