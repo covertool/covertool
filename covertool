@@ -141,7 +141,11 @@ lookup_source(Module) ->
                        false -> Name
                    end
           end,
-    filelib:fold_files(Sources, Glob, true, Fun, "").
+    Name = filelib:fold_files(Sources, Glob, true, Fun, ""),
+    case Name of
+        [$/ | Relative] -> Relative;
+        _Other -> Name
+    end.
 
 % Parse arguments into tuple list
 scan_args([]) -> ok;
