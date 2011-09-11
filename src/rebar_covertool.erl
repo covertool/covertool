@@ -107,9 +107,7 @@ generate_classes(Modules) ->
 
 generate_class(Module) ->
     Fun = fun({{_Module, Line}, Value}, Result) ->
-                  % XXX: ignore zero-indexed line, for some reason it is always present and always not hit
-                  % so, if hits > 0 or line number is zero, assume that line is covered
-                  Covered = case Value of 0 when Line =/= 0 -> 0; _Other -> 1 end,
+                  Covered = case Value of 0 -> 0; _Other -> 1 end,
                   LineCoverage = sum(Result#result.line, {Covered, 1}), % add one line to the summary
                   Data = {line, [{number, Line},
                                  {hits, Value}],
@@ -117,7 +115,13 @@ generate_class(Module) ->
                   {Data, Result#result{line = LineCoverage}}
           end,
     {ok, Lines} = cover:analyse(Module, calls, line),
-    {LinesData, Result} = lists:mapfoldl(Fun, #result{}, Lines),
+
+    % XXX: ignore zero-indexed line, for some reason it is always present and always not hit
+    Filter = fun({{_Module, 0}, 0}) -> false;
+                (_Other) -> true
+             end,
+    Lines2 = lists:filter(Filter, Lines),
+    {LinesData, Result} = lists:mapfoldl(Fun, #result{}, Lines2),
 
     Data = {class, [{name, Module},
                     {filename, lookup_source(Module)},
