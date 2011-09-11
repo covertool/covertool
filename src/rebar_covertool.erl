@@ -26,7 +26,9 @@ ct(Config, _X) ->
         undefined -> ok;
         {From, To} ->
             cover:import(From),
-            generate_report(cover:imported_modules(), To),
+            {ok, CoverLog} = cover_init(),
+            generate_report(cover:imported_modules(), To),    
+            file:close(CoverLog),
             ok
     end.
 
