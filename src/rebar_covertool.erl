@@ -9,6 +9,6 @@ eunit(Config, _X) ->
     case Export of
         undefined -> ok;
         File ->
-            ?CONSOLE("Exporting cover data to '~p'~n", [File]),
+            ?CONSOLE("Exporting cover data to '~w'~n", [File]),
             cover:export(File)
     end.
