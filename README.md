@@ -14,10 +14,12 @@ Standalone:
 
         {incl_app, app0, details}.
         {export, "all.coverdata"}.
-3a. Configure Jenkins to convert `cover` reports into `Cobertura` format:
+3. Configure Jenkins to convert `cover` reports into `Cobertura` format:
   
         $ covertool -cover all.coverdata -output coverage.xml -src src/
-3b. Configure rebar to generate reports in `Cobertura` format:
+
+   or:
+   Configure rebar to generate reports in `Cobertura` format:
         {covertool_eunit, "eunit.coverage.xml"}. % Output report file name
         {covertool_ct, {"ct.coverdata", "ct.coverage.xml"}}. % Source file name, output report file name
 
