@@ -104,7 +104,6 @@ generate_class(Module) ->
     {ok, Lines} = cover:analyse(Module, calls, line),
     {LinesData, Result} = lists:mapfoldl(Fun, #result{}, Lines),
 
-    % [{Line,{Cov,NotCov}}]
     Data = {class, [{name, Module},
                     {filename, lookup_source(Module)},
                     {'line-rate', rate(Result#result.line)},
