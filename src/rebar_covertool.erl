@@ -11,25 +11,42 @@
                  branches = {0, 0},
                  data = []}).
 
-eunit(Config, _X) ->
+%% Run after eunit tests, export current coverage data in Cobertura format
+eunit(Config, AppFile) ->
+    AppName = get_app_name(AppFile),
     case rebar_config:get_local(Config, covertool_eunit, undefined) of
         undefined -> ok;
-        File ->
+        Output ->
                 {ok, CoverLog} = cover_init(),
-                generate_report(cover:modules() ++ cover:imported_modules(), File),
+                generate_report(AppName, cover:modules() ++ cover:imported_modules(), Output),
                 file:close(CoverLog),
                 ok
     end.
 
-ct(Config, _X) ->
+%% Run after common tests. Convert coverage data exported after tests are
+%% executed into Cobertura format.
+ct(Config, AppFile) ->
+    AppName = get_app_name(AppFile),
     case rebar_config:get_local(Config, covertool_ct, undefined) of
         undefined -> ok;
         {From, To} ->
             cover:import(From),
             {ok, CoverLog} = cover_init(),
-            generate_report(cover:imported_modules(), To),    
+            generate_report(AppName, cover:imported_modules(), To),
             file:close(CoverLog),
             ok
+    end.
+
+%% Determine application name from the .app.src. If name cannot be
+%% determined, use "Application"
+get_app_name(AppFile) ->
+    case rebar_app_utils:is_app_src(AppFile) of
+        true ->
+            case rebar_app_utils:load_app_file(AppFile) of
+                {ok, AppName, _AppData} -> AppName;
+                {error, _Reason} -> "Application"
+            end;
+        false -> "Application"
     end.
 
 
@@ -50,7 +67,7 @@ cover_init() ->
     group_leader(F, CoverPid),
     {ok, F}.
 
-generate_report(Modules, Output) ->
+generate_report(AppName, Modules, Output) ->
     io:format("Generating report '~s'...~n", [Output]),
     Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
               "<!DOCTYPE coverage SYSTEM \"http://cobertura.sourceforge.net/xml/coverage-04.dtd\">\n"],
@@ -59,9 +76,9 @@ generate_report(Modules, Output) ->
     Timestamp = MegaSecs * 1000000000 + Secs * 1000 + (MicroSecs div 1000), % in milliseconds
 
     Version = "1.9.4.1", % emulate Cobertura 1.9.4.1
-    Complexity = 0,
+    Complexity = 0, % not supported at the moment
 
-    Result = generate_packages(Modules),
+    Result = generate_packages(AppName, Modules),
     {LinesCovered, LinesValid} = Result#result.line,
     LineRate = rate(Result#result.line),
 
@@ -84,9 +101,8 @@ generate_report(Modules, Output) ->
     write_output(Report, Output),
     ok.
 
-generate_packages(Modules) ->
+generate_packages(AppName, Modules) ->
     Classes = generate_classes(Modules),
-    AppName = "Application", % FIXME: get from .app file
     % for now, the whole data file is a single "package"
     Data = {package, [{name, AppName},
                       {'line-rate', rate(Classes#result.line)},
