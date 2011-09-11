@@ -3,8 +3,6 @@
 %% Application callbacks
 -export([eunit/2, ct/2]).
 
-
--include("../deps/rebar/include/rebar.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 -define(EUNIT_DIR, ".eunit").

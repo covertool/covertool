@@ -19,7 +19,7 @@ Standalone:
         $ covertool -cover all.coverdata -output coverage.xml -src src/
 
    or:
-
+   
    Configure rebar to generate reports in `Cobertura` format:
 
         {covertool_eunit, "eunit.coverage.xml"}. % Output report file name
