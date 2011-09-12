@@ -36,4 +36,3 @@ Screenshots
 
 ![Screenshot2](covertool/raw/master/screenshots/shot2.png)
 
-
