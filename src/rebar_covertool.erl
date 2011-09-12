@@ -118,7 +118,16 @@ generate_classes(Modules) ->
                   Class = generate_class(Module),
                   {Class#result.data, sum(Result, Class)}
           end,
-    {Classes, Result} = lists:mapfoldl(Fun, #result{}, Modules),
+    
+    % Skip modules without sources
+    Filter = fun(Module) ->
+                     case lookup_source(Module) of
+                         false -> false;
+                         _Other -> true
+                     end
+             end,
+    Modules2 = lists:filter(Filter, Modules),
+    {Classes, Result} = lists:mapfoldl(Fun, #result{}, Modules2),
     Result#result{data = Classes}.
 
 generate_class(Module) ->
@@ -182,8 +191,9 @@ lookup_source(Module) ->
                        false -> Name
                    end
           end,
-    Name = filelib:fold_files(Sources, Glob, true, Fun, ""),
+    Name = filelib:fold_files(Sources, Glob, true, Fun, false),
     case Name of
+        false -> false;
         [$/ | Relative] -> Relative;
         _Other -> Name
     end.
