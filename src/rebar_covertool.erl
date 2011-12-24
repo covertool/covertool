@@ -52,9 +52,9 @@ get_app_name(AppFile) ->
         true ->
             case rebar_app_utils:load_app_file(AppFile) of
                 {ok, AppName, _AppData} -> AppName;
-                {error, _Reason} -> "Application"
+                {error, _Reason} -> 'Application'
             end;
-        false -> "Application"
+        false -> 'Application'
     end.
 
 cover_init() ->

@@ -1,5 +1,8 @@
 -module(covertool).
 
+%% command line entry point for escriptize
+-export([main/1]).
+
 %% application entry point
 -export([generate_report/2]).
 
@@ -11,6 +14,48 @@
 -record(result, {line = {0, 0},
                  branches = {0, 0},
                  data = []}).
+
+main([]) ->
+    usage();
+main(Args) ->
+    Config = process_args(Args, #config{appname = 'Application',
+                                  sources = "src/"}),
+    CoverData = Config#config.cover_data,
+    io:format("Importing '~s' data file...~n", [CoverData]),
+    cover:import(CoverData),
+    io:format("Found ~w modules.~n", [length(cover:imported_modules())]),
+
+    generate_report(Config, cover:imported_modules()),
+    io:format("Done.~n"),
+    ok.
+
+usage() ->
+    ScriptName = escript:script_name(),
+    io:format("Usage: ~s [Options]~n", [ScriptName]),
+    io:format("Options:~n"),
+    io:format("    -cover   CoverDataFile  Path to the cover exported data set (default: \"all.coverdata\")~n"),
+    io:format("    -output  OutputFile     File to put generated report to (default: \"coverage.xml\")~n"),
+    io:format("    -src     SourceDir      Directory to look for sources (default: \"src\")~n"),
+    ok.
+
+% Parse arguments into record
+process_args([], Config) -> Config;
+process_args([[$- | Name] , Value | Args], Config) ->
+    NameAtom = list_to_atom(Name),
+    process_args(Args, update_config(NameAtom, Value, Config));
+process_args(_Args, _Config) ->
+    usage(),
+    halt(1).
+
+update_config(cover, Value, Config) ->
+    Config#config{cover_data = Value};
+update_config(output, Value, Config) ->
+    Config#config{output = Value};
+update_config(src, Value, Config) ->
+    Config#config{sources = Value};
+update_config(_Other, _Value, _Config) ->
+    usage(),
+    halt(1).
 
 generate_report(Config, Modules) ->
     AppName = Config#config.appname,
