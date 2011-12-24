@@ -9,12 +9,16 @@ Usage
 
 Standalone:
 
-1. Install Jenkins Cobertura Plug-in.
-2. Configure `cover` to export data. Sample cover.spec for `Common Test`:
+1. Build command line script
+
+        $ make
+
+2. Install Jenkins Cobertura Plug-in.
+3. Configure `cover` to export data. Sample cover.spec for `Common Test`:
 
         {incl_app, app0, details}.
         {export, "all.coverdata"}.
-3. Configure Jenkins to convert `cover` reports into `Cobertura` format:
+4. Configure Jenkins to convert `cover` reports into `Cobertura` format:
   
         $ covertool -cover all.coverdata -output coverage.xml -src src/
 
