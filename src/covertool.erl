@@ -36,6 +36,7 @@ usage() ->
     io:format("    -cover   CoverDataFile  Path to the cover exported data set (default: \"all.coverdata\")~n"),
     io:format("    -output  OutputFile     File to put generated report to (default: \"coverage.xml\")~n"),
     io:format("    -src     SourceDir      Directory to look for sources (default: \"src\")~n"),
+    io:format("    -prefix  PrefixLen      Length used for package name (default: 0)~n"),
     ok.
 
 % Parse arguments into record
@@ -53,6 +54,8 @@ update_config(output, Value, Config) ->
     Config#config{output = Value};
 update_config(src, Value, Config) ->
     Config#config{sources = Value};
+update_config(prefix, Value, Config) ->
+    Config#config{prefix_len = list_to_integer(Value)};
 update_config(_Other, _Value, _Config) ->
     usage(),
     halt(1).
