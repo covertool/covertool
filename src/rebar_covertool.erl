@@ -9,7 +9,7 @@
 
 %% Run after eunit tests, export current coverage data in Cobertura format
 eunit(Config, AppFile) ->
-    AppName = get_app_name(AppFile),
+    AppName = get_app_name(Config, AppFile),
     case rebar_config:get_local(Config, covertool_eunit, undefined) of
         undefined -> ok;
         Output ->
@@ -28,7 +28,7 @@ eunit(Config, AppFile) ->
 %% Run after common tests. Convert coverage data exported after tests are
 %% executed into Cobertura format.
 ct(Config, AppFile) ->
-    AppName = get_app_name(AppFile),
+    AppName = get_app_name(Config, AppFile),
     case rebar_config:get_local(Config, covertool_ct, undefined) of
         undefined -> ok;
         {From, To} ->
@@ -47,11 +47,11 @@ ct(Config, AppFile) ->
 
 %% Determine application name from the .app.src. If name cannot be
 %% determined, use "Application"
-get_app_name(AppFile) ->
+get_app_name(Config, AppFile) ->
     case rebar_app_utils:is_app_src(AppFile) of
         true ->
-            case rebar_app_utils:load_app_file(AppFile) of
-                {ok, AppName, _AppData} -> AppName;
+            case rebar_app_utils:load_app_file(Config, AppFile) of
+                {ok, Config1, AppName, _AppData} -> AppName;
                 {error, _Reason} -> 'Application'
             end;
         false -> 'Application'
