@@ -1,3 +1,3 @@
 compile:
-	./rebar compile
-	./rebar escriptize
+	rebar compile
+	rebar escriptize
