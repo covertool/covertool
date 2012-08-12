@@ -51,7 +51,7 @@ get_app_name(Config, AppFile) ->
     case rebar_app_utils:is_app_src(AppFile) of
         true ->
             case rebar_app_utils:load_app_file(Config, AppFile) of
-                {ok, Config1, AppName, _AppData} -> AppName;
+                {ok, _Config1, AppName, _AppData} -> AppName;
                 {error, _Reason} -> 'Application'
             end;
         false -> 'Application'
