@@ -37,6 +37,7 @@ usage() ->
     io:format("    -output  OutputFile     File to put generated report to (default: \"coverage.xml\")~n"),
     io:format("    -src     SourceDir      Directory to look for sources (default: \"src\")~n"),
     io:format("    -prefix  PrefixLen      Length used for package name (default: 0)~n"),
+    io:format("    -appname AppName        Application name to put in the report (default: \"Application\")~n"),
     ok.
 
 % Parse arguments into record
