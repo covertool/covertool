@@ -9,23 +9,28 @@
 
 %% Run after eunit tests, export current coverage data in Cobertura format
 eunit(Config, AppFile) ->
-    AppName = get_app_name(Config, AppFile),
-    case rebar_config:get_local(Config, covertool_eunit, undefined) of
-        undefined -> ok;
-        Output ->
-            case cover_init() of
-                {ok, CoverLog} ->
-                    PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
-                    CoverConfig = #config{appname = AppName,
-                                          prefix_len = PrefixLen,
-                                          output = Output,
-                                          sources = "src/"},
-                    covertool:generate_report(CoverConfig,
-                                              cover:modules() ++ cover:imported_modules()),
-                    file:close(CoverLog),
-                    ok;
-                {error, _} ->
-                    ok
+    case is_empty_dir(AppFile) of
+        true ->
+            ok;
+        false ->
+            AppName = get_app_name(Config, AppFile),
+            case rebar_config:get_local(Config, covertool_eunit, undefined) of
+                undefined -> ok;
+                Output ->
+                    case cover_init() of
+                        {ok, CoverLog} ->
+                            PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
+                            CoverConfig = #config{appname = AppName,
+                                                  prefix_len = PrefixLen,
+                                                  output = Output,
+                                                  sources = "src/"},
+                            covertool:generate_report(CoverConfig,
+                                                      cover:modules() ++ cover:imported_modules()),
+                            file:close(CoverLog),
+                            ok;
+                        {error, _} ->
+                            ok
+                    end
             end
     end.
 
@@ -60,7 +65,7 @@ get_app_name(Config, AppFile) ->
         undefined ->
             case rebar_app_utils:is_app_src(AppFile) of
                 true ->
-                    {_, Name} = rebar_app_utils:app_name(Config, AppFile), Name;
+                    rebar_app_utils:app_name(AppFile);
                 false -> 'Application'
             end;
         AppName ->
@@ -72,18 +77,22 @@ cover_init() ->
     %% .eunit/cover.log, so all cover log messages will go there instead of
     %% to stdout. If the cover server is already started we'll reuse that
     %% pid.
-    case file:open(filename:join([?EUNIT_DIR, "cover.log"]), [write, append]) of
-        {ok, F} ->
-            {ok, CoverPid} = case cover:start() of
-                                 {ok, _P} = OkStart ->
-                                     OkStart;
-                                 {error,{already_started, P}} ->
-                                     {ok, P};
-                                 {error, _Reason} = ErrorStart ->
-                                     ErrorStart
-                             end,
-            group_leader(F, CoverPid),
-            {ok, F};
-        Err = {error, _} ->
-            Err
+    {ok, CoverPid} = case cover:start() of
+                         {ok, _P} = OkStart ->
+                             OkStart;
+                         {error,{already_started, P}} ->
+                             {ok, P};
+                         {error, _Reason} = ErrorStart ->
+                             ErrorStart
+                     end,
+    {ok, F} = file:open(filename:join([?EUNIT_DIR, "cover.log"]), [write, append]),
+    group_leader(F, CoverPid),
+    {ok, F}.
+
+is_empty_dir(AppFile) ->
+    case file:read_file_info(AppFile) of
+        {ok, _} ->
+            false;
+        {error, _} ->
+            true
     end.
