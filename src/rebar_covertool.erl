@@ -48,10 +48,15 @@ ct(Config, AppFile) ->
 %% Determine application name from the .app.src. If name cannot be
 %% determined, use "Application"
 get_app_name(Config, AppFile) ->
-    case rebar_app_utils:is_app_src(AppFile) of
-        true ->
-            {_, Name} = rebar_app_utils:app_name(Config, AppFile), Name;
-        false -> 'Application'
+    case rebar_config:get_local(Config, covertool_app_name, undefined) of
+        undefined ->
+            case rebar_app_utils:is_app_src(AppFile) of
+                true ->
+                    {_, Name} = rebar_app_utils:app_name(Config, AppFile), Name;
+                false -> 'Application'
+            end;
+        AppName ->
+            AppName
     end.
 
 cover_init() ->
