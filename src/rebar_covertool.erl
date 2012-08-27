@@ -13,16 +13,20 @@ eunit(Config, AppFile) ->
     case rebar_config:get_local(Config, covertool_eunit, undefined) of
         undefined -> ok;
         Output ->
-            {ok, CoverLog} = cover_init(),
-            PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
-            CoverConfig = #config{appname = AppName,
-                                  prefix_len = PrefixLen,
-                                  output = Output,
-                                  sources = "src/"},
-            covertool:generate_report(CoverConfig,
-                                      cover:modules() ++ cover:imported_modules()),
-            file:close(CoverLog),
-            ok
+            case cover_init() of
+                {ok, CoverLog} ->
+                    PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
+                    CoverConfig = #config{appname = AppName,
+                                          prefix_len = PrefixLen,
+                                          output = Output,
+                                          sources = "src/"},
+                    covertool:generate_report(CoverConfig,
+                                              cover:modules() ++ cover:imported_modules()),
+                    file:close(CoverLog),
+                    ok;
+                {error, _} ->
+                    ok
+            end
     end.
 
 %% Run after common tests. Convert coverage data exported after tests are
@@ -32,17 +36,21 @@ ct(Config, AppFile) ->
     case rebar_config:get_local(Config, covertool_ct, undefined) of
         undefined -> ok;
         {From, To} ->
-            {ok, CoverLog} = cover_init(),
-            cover:import(From),
-            PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
-            CoverConfig = #config{appname = AppName,
-                                  prefix_len = PrefixLen,
-                                  output = To,
-                                  sources = "src/"},
-            covertool:generate_report(CoverConfig,
-                                      cover:imported_modules()),
-            file:close(CoverLog),
-            ok
+            case cover_init() of
+                {ok, CoverLog} ->
+                    cover:import(From),
+                    PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
+                    CoverConfig = #config{appname = AppName,
+                                          prefix_len = PrefixLen,
+                                          output = To,
+                                          sources = "src/"},
+                    covertool:generate_report(CoverConfig,
+                                              cover:imported_modules()),
+                    file:close(CoverLog),
+                    ok;
+                {error, _} ->
+                    ok
+            end
     end.
 
 %% Determine application name from the .app.src. If name cannot be
@@ -64,14 +72,18 @@ cover_init() ->
     %% .eunit/cover.log, so all cover log messages will go there instead of
     %% to stdout. If the cover server is already started we'll reuse that
     %% pid.
-    {ok, CoverPid} = case cover:start() of
-                         {ok, _P} = OkStart ->
-                             OkStart;
-                         {error,{already_started, P}} ->
-                             {ok, P};
-                         {error, _Reason} = ErrorStart ->
-                             ErrorStart
-                     end,
-    {ok, F} = file:open(filename:join([?EUNIT_DIR, "cover.log"]), [write, append]),
-    group_leader(F, CoverPid),
-    {ok, F}.
+    case file:open(filename:join([?EUNIT_DIR, "cover.log"]), [write, append]) of
+        {ok, F} ->
+            {ok, CoverPid} = case cover:start() of
+                                 {ok, _P} = OkStart ->
+                                     OkStart;
+                                 {error,{already_started, P}} ->
+                                     {ok, P};
+                                 {error, _Reason} = ErrorStart ->
+                                     ErrorStart
+                             end,
+            group_leader(F, CoverPid),
+            {ok, F};
+        Err = {error, _} ->
+            Err
+    end.
