@@ -7,29 +7,19 @@
 
 -define(EUNIT_DIR, ".eunit").
 
-%% Run after eunit tests, export current coverage data in Cobertura format
+%% Run after eunit tests. Convert coverage data exported after tests are
+%% executed into Cobertura format.
 eunit(Config, AppFile) ->
-    AppName = get_app_name(Config, AppFile),
-    case rebar_config:get_local(Config, covertool_eunit, undefined) of
-        undefined -> ok;
-        Output ->
-            {ok, CoverLog} = cover_init(),
-            PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
-            CoverConfig = #config{appname = AppName,
-                                  prefix_len = PrefixLen,
-                                  output = Output,
-                                  sources = "src/"},
-            covertool:generate_report(CoverConfig,
-                                      cover:modules() ++ cover:imported_modules()),
-            file:close(CoverLog),
-            ok
-    end.
+    generate_report(Config, AppFile, covertool_eunit).
 
 %% Run after common tests. Convert coverage data exported after tests are
 %% executed into Cobertura format.
 ct(Config, AppFile) ->
+    generate_report(Config, AppFile, covertool_ct).
+
+generate_report(Config, AppFile, ConfigKey) ->
     AppName = get_app_name(Config, AppFile),
-    case rebar_config:get_local(Config, covertool_ct, undefined) of
+    case rebar_config:get_local(Config, ConfigKey, undefined) of
         undefined -> ok;
         {From, To} ->
             {ok, CoverLog} = cover_init(),
