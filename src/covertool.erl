@@ -280,7 +280,7 @@ lookup_source(Module) ->
 function_range({M, F, A}) ->
     Beam = io_lib:format("~s/~s.beam", [get(ebin), M]),
     case beam_lib:chunks(Beam, [abstract_code]) of
-        {error, _} -> {0, 0};
+        {error, beam_lib, _} -> {0, 0};
         {ok, {M, [{abstract_code, no_abstract_code}]}} -> {0, 0};
         {ok, {M, [{abstract_code, {_Version, AC}}]}} ->
             Filter = fun ({function, _, Fun, Ary, _}) ->
