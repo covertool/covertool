@@ -40,8 +40,8 @@ generate_report(Config, AppFile, ConfigKey) ->
 get_app_name(Config, AppFile) ->
     case rebar_app_utils:is_app_src(AppFile) of
         true ->
-            case rebar_app_utils:load_app_file(Config, AppFile) of
-                {ok, _Config1, AppName, _AppData} -> AppName;
+            case rebar_app_utils:app_name(Config, AppFile) of
+                {ok, _Config1, AppName} -> AppName;
                 {error, _Reason} -> 'Application'
             end;
         false -> 'Application'
