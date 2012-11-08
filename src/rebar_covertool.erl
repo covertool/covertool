@@ -51,7 +51,8 @@ get_app_name(Config, AppFile) ->
         undefined ->
             case rebar_app_utils:is_app_src(AppFile) of
                 true ->
-                    rebar_app_utils:app_name(Config, AppFile);
+                    {_Config, AppName} = rebar_app_utils:app_name(Config, AppFile),
+                    AppName;
                 false -> 'Application'
             end;
         AppName ->

@@ -136,7 +136,9 @@ generate_packages(AppName, PrefixLen, Modules) ->
 %% - AppName itself
 %% - source direcotry
 %% - module prefix (name devided by "_")
-package_name(AppName, PrefixLen, Module) ->
+package_name(AppName, PrefixLen, Module)
+    when is_atom(AppName), is_atom(Module) ->
+
     SourceDirs = case lookup_source(Module) of
                     false ->
                         [];
