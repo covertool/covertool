@@ -19,7 +19,8 @@ main([]) ->
     usage();
 main(Args) ->
     Config = process_args(Args, #config{appname = 'Application',
-                                  sources = "src/"}),
+                                        sources = "src/",
+                                        beams = "ebin/"}),
     CoverData = Config#config.cover_data,
     io:format("Importing '~s' data file...~n", [CoverData]),
     cover:import(CoverData),
@@ -36,6 +37,7 @@ usage() ->
     io:format("    -cover   CoverDataFile  Path to the cover exported data set (default: \"all.coverdata\")~n"),
     io:format("    -output  OutputFile     File to put generated report to (default: \"coverage.xml\")~n"),
     io:format("    -src     SourceDir      Directory to look for sources (default: \"src\")~n"),
+    io:format("    -ebin    EbinDir        Directory to look for beams (default: \"ebin\")~n"),
     io:format("    -prefix  PrefixLen      Length used for package name (default: 0)~n"),
     io:format("    -appname AppName        Application name to put in the report (default: \"Application\")~n"),
     ok.
@@ -55,6 +57,8 @@ update_config(output, Value, Config) ->
     Config#config{output = Value};
 update_config(src, Value, Config) ->
     Config#config{sources = Value};
+update_config(ebin, Value, Config) ->
+    Config#config{beams = Value};
 update_config(prefix, Value, Config) ->
     Config#config{prefix_len = list_to_integer(Value)};
 update_config(appname, Value, Config) ->
@@ -74,6 +78,7 @@ generate_report(Config, Modules) ->
             cover:import(CoverData)
     end,
     put(src, Config#config.sources),
+    put(ebin, Config#config.beams),
     io:format("Generating report '~s'...~n", [Output]),
     Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
               "<!DOCTYPE coverage SYSTEM \"http://cobertura.sourceforge.net/xml/coverage-04.dtd\">\n"],
@@ -203,9 +208,33 @@ generate_class(Module) ->
                     {'line-rate', rate(Result#result.line)},
                     {'branch-rate', rate(Result#result.branches)},
                     {complexity, 0}],
-            [{methods, []},
+            [{methods, generate_methods(Module, LinesData)},
              {lines, LinesData}]},
     Result#result{data = Data}.
+
+generate_methods(Module, LinesData) ->
+    ResultFun = fun ({line, LineData, _}, Result) ->
+                    Hits = proplists:get_value(hits, LineData, 0),
+                    Covered = case Hits of 0 -> 0; _Other -> 1 end,
+                    LineCoverage = sum(Result#result.line, {Covered, 1}),
+                    Result#result{line = LineCoverage}
+                end,
+
+    {ok, Functions} = cover:analyse(Module, calls, function),
+    MFAs = lists:map(fun (F) -> element(1, F) end, Functions),
+    lists:flatten(lists:map(
+        fun ({_M, F, A} = MFA) ->
+                case function_lines(MFA, LinesData) of
+                    [] -> [];
+                    FunLinesData ->
+                        Result = lists:foldl(ResultFun, #result{}, FunLinesData),
+                        {method, [{name, F},
+                                  {signature, io_lib:format("~s/~B", [F, A])},
+                                  {'line-rate', rate(Result#result.line)},
+                                  {'branch-rate', rate(Result#result.branches)}],
+                                 [{lines, FunLinesData}]}
+                end
+        end, MFAs)).
 
 write_output(Report, Output) ->
     io:format("Writing output report '~s'...~n", [Output]),
@@ -247,3 +276,30 @@ lookup_source(Module) ->
         [$/ | Relative] -> Relative;
         _Other -> Name
     end.
+
+% lookup start and end lines for function
+function_range({M, F, A}) ->
+    Beam = io_lib:format("~s/~s.beam", [get(ebin), M]),
+    case beam_lib:chunks(Beam, [abstract_code]) of
+        {error, beam_lib, _} -> {0, 0};
+        {ok, {M, [{abstract_code, no_abstract_code}]}} -> {0, 0};
+        {ok, {M, [{abstract_code, {_Version, AC}}]}} ->
+            Filter = fun ({function, _, Fun, Ary, _}) ->
+                           not (Fun =:= F andalso Ary =:= A);
+                         (_) -> true
+                     end,
+            case lists:dropwhile(Filter, AC) of
+                [] -> {0, 0}; %% Should never happen unless beam is out of sync
+                [{_, Line, F, A, _}, {eof, Next}] -> {Line, Next};
+                [{_, Line, F, A, _}, Following | _] ->
+                    {Line, element(2, Following) - 1}
+            end
+    end.
+
+% filter lines by function
+function_lines(MFA, LinesData) ->
+    {Start, End} = function_range(MFA),
+    lists:filter(fun (LineData) ->
+                     Line = proplists:get_value(number, element(2, LineData)),
+                     Line > Start andalso Line =< End
+                 end, LinesData).
