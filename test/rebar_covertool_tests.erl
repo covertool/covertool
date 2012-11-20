@@ -34,7 +34,8 @@ eunit_test_() ->
                assert_files_not_in("the temporary eunit directory",
                                    [".eunit/myapp_mymod_tests.COVER.html"])},
 			  
-			  {"FIXME: Minimal verification of file contents!", ?_assert(true)}
+			  {"myapp_mymod should be fully covered and package name must match!",
+			   assert_report(".eunit/eunit.coverage.xml", "otherapp")}
 			  ]
      end}.
 
@@ -60,7 +61,8 @@ expected_cover_generated_files() ->
          "myfunc_test() -> ?assertMatch(ok, myapp_mymod:myfunc()).\n"]).
 
 -define(rebar_eunit_config,
-		["{lib_dirs, [\"../../../\"]}.\n",
+		["{covertool_app_name, 'otherapp'}.\n",
+		 "{lib_dirs, [\"../../../\"]}.\n",
 		 "{plugins, [rebar_covertool]}.\n",
 		 "{cover_enabled, true}.\n",
 		 "{cover_export_enabled, true}.\n",
@@ -127,3 +129,12 @@ assert_files_not_in(Name, [File|T]) ->
     [{Name ++ " does not have file: " ++ File,
       ?_assertNot(filelib:is_regular(File))} | assert_files_not_in(Name, T)];
 assert_files_not_in(_, []) -> [].
+
+assert_report(File, AppName) ->
+    fun() ->
+            {ok, F} = file:read_file(File),
+			Str = binary_to_list(F),
+			[?assert(string:str(Str, "filename=\"myapp_mymod.erl\" line-rate=\"1.000000\"") =/= 0),
+			 ?assert(string:str(Str, "package name=\"" ++ AppName ++ "\"") =/= 0)]
+    end.
+
