@@ -16,7 +16,7 @@
 
 eunit_test_() ->
     {"Ensure Cover runs with tests in a test dir and no defined suite",
-     setup, fun() -> setup_cover_project(), rebar("-v eunit") end,
+     setup, fun() -> setup_project(), rebar("-v compile eunit ct") end,
      fun teardown/1,
 
      fun(RebarOut) ->
@@ -35,13 +35,18 @@ eunit_test_() ->
                                    [".eunit/myapp_mymod_tests.COVER.html"])},
 			  
 			  {"myapp_mymod should be fully covered and package name must match!",
-			   assert_report(".eunit/eunit.coverage.xml", "otherapp")}
+			   assert_report(".eunit/eunit.coverage.xml", "otherapp")},
+
+			  {"myapp_mymod should be fully covered and package name must match!",
+			   assert_report("test/ct.coverage.xml", "otherapp")}
 			  ]
      end}.
 
 expected_cover_generated_files() ->
     [".eunit/eunit.coverdata",
-	 ".eunit/eunit.coverage.xml"].
+	 ".eunit/eunit.coverage.xml",
+	 "test/ct.coverdata",
+	 "test/ct.coverage.xml"].
 
 %% ====================================================================
 %% Setup and Teardown
@@ -60,13 +65,27 @@ expected_cover_generated_files() ->
          "-include_lib(\"eunit/include/eunit.hrl\").\n",
          "myfunc_test() -> ?assertMatch(ok, myapp_mymod:myfunc()).\n"]).
 
--define(rebar_eunit_config,
+
+
+-define(myapp_mymod_SUITE,
+        ["-module(myapp_mymod_SUITE).\n",
+		 "-export([all/0]).\n",
+		 "-export([myfunc_test/1]).\n",
+         "-include_lib(\"common_test/include/ct.hrl\").\n",
+         "all() -> [myfunc_test].\n",
+         "myfunc_test(_Config) -> myapp_mymod:myfunc().\n"]).
+
+-define(rebar_config,
 		["{covertool_app_name, 'otherapp'}.\n",
 		 "{lib_dirs, [\"../../../\"]}.\n",
 		 "{plugins, [rebar_covertool]}.\n",
 		 "{cover_enabled, true}.\n",
 		 "{cover_export_enabled, true}.\n",
-		 "{covertool_eunit, {\".eunit/eunit.coverdata\", \".eunit/eunit.coverage.xml\"}}.\n"]).
+		 "{covertool_eunit, {\".eunit/eunit.coverdata\", \".eunit/eunit.coverage.xml\"}}.\n",
+		 "{covertool_ct, {\"test/ct.coverdata\", \"test/ct.coverage.xml\"}}.\n"]).
+
+-define(cover_spec,
+		["{export, \"test/ct.coverdata\"}.\n"]).
 
 make_tmp_dir() ->
     ok = file:make_dir(?TMP_DIR).
@@ -76,17 +95,17 @@ setup_environment() ->
     prepare_rebar_script(),
     ok = file:set_cwd(?TMP_DIR).
 
-setup_basic_project() ->
+setup_project() ->
     setup_environment(),
     rebar("create-app appid=myapp"),
     ok = file:make_dir("ebin"),
     ok = file:make_dir("test"),
     ok = file:write_file("test/myapp_mymod_tests.erl", ?myapp_mymod_tests),
-    ok = file:write_file("src/myapp_mymod.erl", ?myapp_mymod).
+    ok = file:write_file("src/myapp_mymod.erl", ?myapp_mymod),
+	ok = file:write_file("test/myapp_mymod_SUITE.erl", ?myapp_mymod_SUITE),
+	ok = file:write_file("test/cover.spec", ?cover_spec),
+	ok = file:write_file("rebar.config", ?rebar_config).
 
-setup_cover_project() ->
-    setup_basic_project(),
-    ok = file:write_file("rebar.config", ?rebar_eunit_config).
 
 teardown(_) ->
     ok = file:set_cwd(".."),
