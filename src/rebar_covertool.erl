@@ -7,54 +7,56 @@
 
 -define(EUNIT_DIR, ".eunit").
 
-%% Run after eunit tests, export current coverage data in Cobertura format
+%% Run after eunit tests. Convert coverage data exported after tests are
+%% executed into Cobertura format.
 eunit(Config, AppFile) ->
-    AppName = get_app_name(Config, AppFile),
-    case rebar_config:get_local(Config, covertool_eunit, undefined) of
-        undefined -> ok;
-        Output ->
-            {ok, CoverLog} = cover_init(),
-            PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
-            CoverConfig = #config{appname = AppName,
-                                  prefix_len = PrefixLen,
-                                  output = Output,
-                                  sources = "src/"},
-            covertool:generate_report(CoverConfig,
-                                      cover:modules() ++ cover:imported_modules()),
-            file:close(CoverLog),
-            ok
+    case is_empty_dir(AppFile) of
+        true ->
+            ok;
+        false ->
+            generate_report(Config, AppFile, covertool_eunit)
     end.
 
 %% Run after common tests. Convert coverage data exported after tests are
 %% executed into Cobertura format.
 ct(Config, AppFile) ->
+    generate_report(Config, AppFile, covertool_ct).
+
+generate_report(Config, AppFile, ConfigKey) ->
     AppName = get_app_name(Config, AppFile),
-    case rebar_config:get_local(Config, covertool_ct, undefined) of
+    case rebar_config:get_local(Config, ConfigKey, undefined) of
         undefined -> ok;
         {From, To} ->
-            {ok, CoverLog} = cover_init(),
-            cover:import(From),
-            PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
-            CoverConfig = #config{appname = AppName,
-                                  prefix_len = PrefixLen,
-                                  output = To,
-                                  sources = "src/"},
-            covertool:generate_report(CoverConfig,
-                                      cover:imported_modules()),
-            file:close(CoverLog),
-            ok
+            case cover_init() of
+                {ok, CoverLog} ->
+                    cover:import(From),
+                    PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
+                    CoverConfig = #config{appname = AppName,
+                                          prefix_len = PrefixLen,
+                                          output = To,
+                                          sources = "src/"},
+                    covertool:generate_report(CoverConfig,
+                                              cover:imported_modules()),
+                    file:close(CoverLog),
+                    ok;
+                {error, _} ->
+                    ok
+            end
     end.
 
 %% Determine application name from the .app.src. If name cannot be
 %% determined, use "Application"
 get_app_name(Config, AppFile) ->
-    case rebar_app_utils:is_app_src(AppFile) of
-        true ->
-            case rebar_app_utils:load_app_file(Config, AppFile) of
-                {ok, Config1, AppName, _AppData} -> AppName;
-                {error, _Reason} -> 'Application'
+    case rebar_config:get_local(Config, covertool_app_name, undefined) of
+        undefined ->
+            case rebar_app_utils:is_app_src(AppFile) of
+                true ->
+                    {_Config, AppName} = rebar_app_utils:app_name(Config, AppFile),
+                    AppName;
+                false -> 'Application'
             end;
-        false -> 'Application'
+        AppName ->
+            AppName
     end.
 
 cover_init() ->
@@ -73,3 +75,11 @@ cover_init() ->
     {ok, F} = file:open(filename:join([?EUNIT_DIR, "cover.log"]), [write, append]),
     group_leader(F, CoverPid),
     {ok, F}.
+
+is_empty_dir(AppFile) ->
+    case file:read_file_info(AppFile) of
+        {ok, _} ->
+            false;
+        {error, _} ->
+            true
+    end.

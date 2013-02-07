@@ -27,7 +27,8 @@ Standalone:
    Configure rebar to generate reports in `Cobertura` format:
 
         {plugins, [rebar_covertool]}.
-        {covertool_eunit, "eunit.coverage.xml"}. % Output report file name
+        {cover_export_enabled, true}.
+        {covertool_eunit, {".eunit/eunit.coverdata", "eunit.coverage.xml"}}. % Source file name, output report file name
         {covertool_ct, {"ct.coverdata", "ct.coverage.xml"}}. % Source file name, output report file name
         {covertool_prefix_len, 2}. % Optional: Use module prefix as (imaginary) package name
 
