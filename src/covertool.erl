@@ -289,6 +289,7 @@ function_range({M, F, A}) ->
                      end,
             case lists:dropwhile(Filter, AC) of
                 [] -> {0, 0}; %% Should never happen unless beam is out of sync
+                [{_, Line, F, A, _}] -> {Line, Line};
                 [{_, Line, F, A, _}, {eof, Next}] -> {Line, Next};
                 [{_, Line, F, A, _}, Following | _] ->
                     {Line, element(2, Following) - 1}
