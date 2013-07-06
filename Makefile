@@ -1,5 +1,5 @@
 #!/usr/bin/make
-REBAR=rebar
+REBAR?=rebar
 
 .PHONY : all deps compile test clean
 all: deps compile test
