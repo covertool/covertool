@@ -20,7 +20,12 @@ eunit(Config, AppFile) ->
 %% Run after common tests. Convert coverage data exported after tests are
 %% executed into Cobertura format.
 ct(Config, AppFile) ->
-    generate_report(Config, AppFile, covertool_ct).
+    case is_empty_dir(AppFile) of
+        true ->
+            ok;
+        false ->
+            generate_report(Config, AppFile, covertool_ct)
+    end.
 
 generate_report(Config, AppFile, ConfigKey) ->
     AppName = get_app_name(Config, AppFile),
