@@ -43,7 +43,7 @@ eunit_test_() ->
      end}.
 
 expected_cover_generated_files() ->
-    [".eunit/eunit.coverdata",
+    [".eunit/cover.coverdata",
 	 ".eunit/eunit.coverage.xml",
 	 "test/ct.coverdata",
 	 "test/ct.coverage.xml"].
@@ -81,11 +81,12 @@ expected_cover_generated_files() ->
 		 "{plugins, [rebar_covertool]}.\n",
 		 "{cover_enabled, true}.\n",
 		 "{cover_export_enabled, true}.\n",
-		 "{covertool_eunit, {\".eunit/eunit.coverdata\", \".eunit/eunit.coverage.xml\"}}.\n",
+		 "{covertool_eunit, {\".eunit/cover.coverdata\", \".eunit/eunit.coverage.xml\"}}.\n",
 		 "{covertool_ct, {\"test/ct.coverdata\", \"test/ct.coverage.xml\"}}.\n"]).
 
 -define(cover_spec,
-		["{export, \"test/ct.coverdata\"}.\n"]).
+		["{export, \"../../test/ct.coverdata\"}.\n",
+		"{incl_dirs, [\"../../test\", \"../../src\"]}.\n"]).
 
 make_tmp_dir() ->
     ok = file:make_dir(?TMP_DIR).
