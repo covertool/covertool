@@ -85,7 +85,8 @@ expected_cover_generated_files() ->
 		 "{covertool_ct, {\"test/ct.coverdata\", \"test/ct.coverage.xml\"}}.\n"]).
 
 -define(cover_spec,
-		["{export, \"test/ct.coverdata\"}.\n"]).
+		["{export, \"../../test/ct.coverdata\"}.\n",
+		"{incl_dirs, [\"../../test\", \"../../src\"]}.\n"]).
 
 make_tmp_dir() ->
     ok = file:make_dir(?TMP_DIR).
