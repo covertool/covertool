@@ -77,7 +77,9 @@ cover_init() ->
                          {error, _Reason} = ErrorStart ->
                              ErrorStart
                      end,
-    {ok, F} = file:open(filename:join([?EUNIT_DIR, "cover.log"]), [write, append]),
+    CoverLog = filename:join([?EUNIT_DIR, "cover.log"]),
+    ok = filelib:ensure_dir(CoverLog),
+    {ok, F} = file:open(CoverLog, [write, append]),
     group_leader(F, CoverPid),
     {ok, F}.
 
