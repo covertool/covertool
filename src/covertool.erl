@@ -19,8 +19,8 @@ main([]) ->
     usage();
 main(Args) ->
     Config = process_args(Args, #config{appname = 'Application',
-                                        sources = "src/",
-                                        beams = "ebin/"}),
+                                        sources = ["src/"],
+                                        beams = ["ebin/"]}),
     CoverData = Config#config.cover_data,
     io:format("Importing '~s' data file...~n", [CoverData]),
     cover:import(CoverData),
@@ -56,9 +56,9 @@ update_config(cover, Value, Config) ->
 update_config(output, Value, Config) ->
     Config#config{output = Value};
 update_config(src, Value, Config) ->
-    Config#config{sources = Value};
+    Config#config{sources = string:tokens(Value, ",")};
 update_config(ebin, Value, Config) ->
-    Config#config{beams = Value};
+    Config#config{beams = string:tokens(Value, ",")};
 update_config(prefix, Value, Config) ->
     Config#config{prefix_len = list_to_integer(Value)};
 update_config(appname, Value, Config) ->
@@ -96,7 +96,7 @@ generate_report(Config, Modules) ->
     {BranchesCovered, BranchesValid} = Result#result.branches,
     BranchRate = rate(Result#result.branches),
 
-    Sources = filename:absname(get(src)),
+    Sources = [filename:absname(SrcDir) || SrcDir <- get(src)],
     Root = {coverage, [{timestamp, Timestamp},
                        {'line-rate', LineRate},
                        {'lines-covered', LinesCovered},
@@ -265,14 +265,20 @@ rate({Covered, Valid}) -> [Res] = io_lib:format("~f", [Covered / Valid]), Res.
 lookup_source(Module) ->
     Sources = get(src),
     Glob = "^" ++ atom_to_list(Module) ++ "\.erl\$",
-    Fun = fun (Name, _In) ->
-                   % substract directory
-                   case lists:prefix(Sources, Name) of
-                       true -> lists:nthtail(length(Sources), Name);
-                       false -> Name
-                   end
-          end,
-    Name = filelib:fold_files(Sources, Glob, true, Fun, false),
+    Name = lists:foldl(
+             fun(SrcDir, false) ->
+                     Fun = fun (Name, _In) ->
+                                   % substract directory
+                                   case lists:prefix(SrcDir, Name) of
+                                       true -> lists:nthtail(length(SrcDir), Name);
+                                       false -> Name
+                                   end
+                           end,
+                     filelib:fold_files(SrcDir, Glob, true, Fun, false);
+                (_, Name) ->
+                     Name
+             end, false, Sources),
+
     case Name of
         false -> false;
         [$/ | Relative] -> Relative;
@@ -281,9 +287,12 @@ lookup_source(Module) ->
 
 % lookup start and end lines for function
 function_range({M, F, A}) ->
-    Beam = io_lib:format("~s/~s.beam", [get(ebin), M]),
+    function_range(get(ebin), M, F, A).
+
+function_range([EbinDir | RDirs], M, F, A) ->
+    Beam = io_lib:format("~s/~s.beam", [EbinDir, M]),
     case beam_lib:chunks(Beam, [abstract_code]) of
-        {error, beam_lib, _} -> {0, 0};
+        {error, beam_lib, _} -> function_range(RDirs, M, F, A);
         {ok, {M, [{abstract_code, no_abstract_code}]}} -> {0, 0};
         {ok, {M, [{abstract_code, {_Version, AC}}]}} ->
             Filter = fun ({function, _, Fun, Ary, _}) ->
@@ -297,7 +306,9 @@ function_range({M, F, A}) ->
                 [{_, Line, F, A, _}, Following | _] ->
                     {Line, element(2, Following) - 1}
             end
-    end.
+    end;
+function_range(_, _M, _F, _A) ->
+    {0, 0}.
 
 % filter lines by function
 function_lines(MFA, LinesData) ->
