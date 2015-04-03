@@ -274,7 +274,7 @@ lookup_source(Module) ->
                                        false -> Name
                                    end
                            end,
-                     filelib:fold_files(Sources, Glob, true, Fun, false);
+                     filelib:fold_files(SrcDir, Glob, true, Fun, false);
                 (_, Name) ->
                      Name
              end, false, Sources),
