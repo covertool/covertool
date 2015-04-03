@@ -39,7 +39,7 @@ generate_report(Config, AppFile, ConfigKey) ->
                     CoverConfig = #config{appname = AppName,
                                           prefix_len = PrefixLen,
                                           output = To,
-                                          sources = "src/"},
+                                          sources = ["src/"]},
                     covertool:generate_report(CoverConfig,
                                               cover:imported_modules()),
                     file:close(CoverLog),
