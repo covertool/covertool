@@ -9,7 +9,7 @@ Usage
 
 Standalone:
 
-1. Build command line script
+1. Build command line script (WARNING: EUnit test for plugin may fail for OTP =< 17.3, due to a bug in `cover` app)
 
         $ make
 
