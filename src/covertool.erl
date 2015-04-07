@@ -96,7 +96,7 @@ generate_report(Config, Modules) ->
     {BranchesCovered, BranchesValid} = Result#result.branches,
     BranchRate = rate(Result#result.branches),
 
-    Sources = [filename:absname(SrcDir) || SrcDir <- get(src)],
+    Sources = [{source, [filename:absname(SrcDir)]} || SrcDir <- get(src)],
     Root = {coverage, [{timestamp, Timestamp},
                        {'line-rate', LineRate},
                        {'lines-covered', LinesCovered},
@@ -106,7 +106,7 @@ generate_report(Config, Modules) ->
                        {'branches-valid', BranchesValid},
                        {complexity, Complexity},
                        {version, Version}],
-            [{sources, [{source, [Sources]}]},
+            [{sources, Sources},
              {packages, Result#result.data}]},
     Report = xmerl:export_simple([Root], xmerl_xml, [{prolog, Prolog}]),
     write_output(Report, Output),
