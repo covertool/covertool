@@ -12,3 +12,4 @@ test:
 	-@$(REBAR) skip_deps=true eunit
 clean:
 	@$(REBAR) clean
+	@rm cover.xml
