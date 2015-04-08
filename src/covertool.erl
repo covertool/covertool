@@ -142,10 +142,14 @@ package_name(AppName, PrefixLen, Module)
     SourceDirs = case lookup_source(Module) of
                     false ->
                         [];
-                    SourceFile ->
+                     {ok, SourceFile, ModuleDir} ->
                         case filename:dirname(SourceFile) of
                             "." ->
-                                [];
+                                case lists:reverse(string:tokens(ModuleDir, "/")) of
+                                    [_, "src", AppDir | _] -> [AppDir];
+                                    ["src", AppDir | _] -> [AppDir];
+                                    _ -> ""
+                                end;
                             DirName ->
                                 string:tokens(DirName, "/")
                         end
@@ -205,8 +209,10 @@ generate_class(Module) ->
     Lines2 = lists:filter(Filter, Lines),
     {LinesData, Result} = lists:mapfoldl(Fun, #result{}, Lines2),
 
+    {ok, Filename, _} = lookup_source(Module),
+
     Data = {class, [{name, Module},
-                    {filename, lookup_source(Module)},
+                    {filename, Filename},
                     {'line-rate', rate(Result#result.line)},
                     {'branch-rate', rate(Result#result.branches)},
                     {complexity, 0}],
@@ -265,24 +271,20 @@ rate({Covered, Valid}) -> [Res] = io_lib:format("~f", [Covered / Valid]), Res.
 lookup_source(Module) ->
     Sources = get(src),
     Glob = "^" ++ atom_to_list(Module) ++ "\.erl\$",
-    Name = lists:foldl(
-             fun(SrcDir, false) ->
-                     Fun = fun (Name, _In) ->
-                                   % substract directory
-                                   case lists:prefix(SrcDir, Name) of
-                                       true -> lists:nthtail(length(SrcDir), Name);
-                                       false -> Name
-                                   end
-                           end,
-                     filelib:fold_files(SrcDir, Glob, true, Fun, false);
-                (_, Name) ->
-                     Name
-             end, false, Sources),
+    Result = lists:foldl(
+               fun(SrcDir, false) ->
+                       Fun = fun (Name, _In) ->
+                                     % substract directory
+                                     {ok, lists:nthtail(length(SrcDir), Name), SrcDir}
+                             end,
+                       filelib:fold_files(SrcDir, Glob, true, Fun, false);
+                  (_, Found) ->
+                       Found
+               end, false, Sources),
 
-    case Name of
-        false -> false;
-        [$/ | Relative] -> Relative;
-        _Other -> Name
+    case Result of
+        {ok, [$/ | Relative], SrcDir} -> {ok, Relative, SrcDir};
+        _Other -> Result
     end.
 
 % lookup start and end lines for function
