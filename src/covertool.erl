@@ -83,7 +83,7 @@ generate_report(Config, Modules) ->
     Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
               "<!DOCTYPE coverage SYSTEM \"http://cobertura.sourceforge.net/xml/coverage-04.dtd\">\n"],
 
-    {MegaSecs, Secs, MicroSecs} = erlang:timestamp(),
+    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     Timestamp = MegaSecs * 1000000000 + Secs * 1000 + (MicroSecs div 1000), % in milliseconds
 
     Version = "1.9.4.1", % emulate Cobertura 1.9.4.1
