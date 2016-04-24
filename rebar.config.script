@@ -1,0 +1,9 @@
+case os:getenv("REBAR") of
+    Missing when Missing =:= false; Missing =:= [] ->
+        %% we are not building covertool directly, so do *not* fetch rebar
+        {value, {deps, DepList}, RestConfig} = lists:keytake( deps, 1, CONFIG ),
+        NewDepList = lists:keydelete( rebar, 1, DepList ),
+        [{deps, NewDepList} | RestConfig];
+    _RebarCmd -> CONFIG
+end.
+
