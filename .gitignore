@@ -6,3 +6,6 @@ rpc_monitor*
 .project
 .settings
 erlide.log
+.rebar3
+erl_crash.dump
+*~
