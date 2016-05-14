@@ -14,6 +14,7 @@ init( State ) ->
     Options = [{module, ?MODULE},
                {namespace, covertool},
                {name, generate},
+               {deps, [{default,app_discovery}]},
                {example, "rebar3 covertool generate"},
                {short_desc, "generate Cobertura output"},
                {desc, "Process the rebar3 cover generated .coverdata files, and produce an Cobertura XML into the _build/test/covertool/ directory for each application in the rebar3 project."},
