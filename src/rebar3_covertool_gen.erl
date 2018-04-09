@@ -24,10 +24,10 @@ init( State ) ->
 
     
 do(State) ->
-    OutputFiles = output_files(),
-    InputFiles = input_files(),
+    OutputFiles = output_files(State),
+    InputFiles = input_files(State),
     Apps = rebar_state:project_apps(State),
-    case generate( OutputFiles, InputFiles, Apps ) of
+    case generate( State, OutputFiles, InputFiles, Apps ) of
         ok ->
             {ok, State};
         Error ->
@@ -42,13 +42,15 @@ format_error(Reason) ->
 %% ===================================================================
 %% Internal Functions
 %% ===================================================================
-output_files() ->
-    filelib:wildcard( outdir() ++ "/*.xml" ).
+output_files(State) ->
+    filelib:wildcard(filename:join(outdir(State), "*.xml")).
 
 
-input_files() ->
-    CoverDataFiles = ["eunit.coverdata", "ct.coverdata"],
-    FullPaths = ["_build/test/cover/" ++ File || File <- CoverDataFiles],
+input_files(State) ->
+    ProfileDir = rebar_dir:base_dir(State),
+    Config = rebar_state:get(State, covertool, []),
+    CoverDataFiles = proplists:get_value(coverdata_files, Config, ["eunit.coverdata", "ct.coverdata"]),
+    FullPaths = [filename:join([ProfileDir, "cover", File]) || File <- CoverDataFiles],
     filter_existing_inputs(FullPaths).
 
 filter_existing_inputs([]) ->
@@ -62,12 +64,13 @@ filter_existing_inputs([H|T]) ->
             filter_existing_inputs(T)
     end.
 
-generate( OutputFiles, InputFiles, Apps ) ->
+generate( State, OutputFiles, InputFiles, Apps ) ->
     %% blow away any output files (if present), and make directory exist
     [file:delete( File ) || File <- OutputFiles],
-    filelib:ensure_dir( outdir() ++  "/dummy" ),
-    case generate_init( InputFiles, "_build/test/covertool.log" ) of
-        {ok, LogFile} -> generate_apps( Apps, LogFile );
+    ProfileDir = rebar_dir:base_dir(State),
+    filelib:ensure_dir( filename:join(outdir(State), "dummy") ),
+    case generate_init( InputFiles, filename:join(ProfileDir, "covertool.log") ) of
+        {ok, LogFile} -> generate_apps( State, Apps, LogFile );
         Otherwise -> Otherwise
     end.
 
@@ -90,14 +93,14 @@ generate_import( [], LogFile ) ->
     {ok, LogFile}.
             
 
-generate_apps( Apps, LogFile ) ->    
-    Result = lists:foldl( fun generate_app/2, ok, Apps ),
+generate_apps( State, Apps, LogFile ) ->
+    Result = lists:foldl( fun(App, Result) -> generate_app(State, App, Result) end, ok, Apps ),
     file:close( LogFile ),
     Result.
 
-generate_app( App, Result ) ->
+generate_app(State, App, Result) ->
     AppName = binary_to_atom( rebar_app_info:name( App ), latin1 ),
-    OutputFile = outdir() ++ "/" ++ atom_to_list(AppName) ++ ".covertool.xml",
+    OutputFile = filename:join(outdir(State), atom_to_list(AppName) ++ ".covertool.xml"),
     SourceDir = filename:join( rebar_app_info:dir( App ), "src/" ),
     Config = #config{ appname = AppName,  output = OutputFile,
                       sources = [SourceDir] },
@@ -106,8 +109,9 @@ generate_app( App, Result ) ->
         Otherwise -> Otherwise
     end.
 
-outdir() ->
-    "_build/test/covertool".
+outdir(State) ->
+    ProfileDir = rebar_dir:base_dir(State),
+    filename:join(ProfileDir, "covertool").
 
 file_exists(Filename) ->
     case file:read_file_info(Filename) of
