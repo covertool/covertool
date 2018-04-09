@@ -32,6 +32,14 @@ Standalone:
         {covertool_ct, {"ct.coverdata", "ct.coverage.xml"}}. % Source file name, output report file name
         {covertool_prefix_len, 2}. % Optional: Use module prefix as (imaginary) package name
 
+   or:
+   
+   Configure rebar3 to generate reports in `Cobertura` format:
+   
+        {project_plugins, [rebar_covertool]}.
+        {cover_export_enabled, true}.
+        {covertool, [{coverdata_files, ["ct.coverdata", "eunit.coverdata"]}]}.
+   
 4. Configure "Publish Cobertura Coverage Report" post-build action, set path
 to the generated `coverage.xml`
 5. Run the build. At the end, "Coverage Report" link should appear on project page.
