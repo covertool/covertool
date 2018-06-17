@@ -7,54 +7,60 @@ reports. The report could be then feed to the Jenkins Cobertura plug-in.
 Usage
 -----
 
-Standalone:
+1. Install Jenkins Cobertura Plug-in.
+2. Pick one of the options below ([standalone](#standalone)/[rebar](#rebar)/[rebar3](#rebar3)/[mix](#mix))
+3. Configure "Publish Cobertura Coverage Report" post-build action, set path
+to the generated `coverage.xml`
+4. Run the build. At the end, "Coverage Report" link should appear on project page.
+
+## Standalone
 
 1. Build command line script (WARNING: EUnit test for plugin may fail for OTP =< 17.3, due to a bug in `cover` app)
 
         $ make
 
-2. Install Jenkins Cobertura Plug-in.
-3. Configure `cover` to export data. Sample cover.spec for `Common Test`:
+2. Configure `cover` to export data. Sample cover.spec for `Common Test`:
 
         {incl_app, app0, details}.
         {export, "all.coverdata"}.
-4. Configure Jenkins to convert `cover` reports into `Cobertura` format:
+
+3. Configure Jenkins to convert `cover` reports into `Cobertura` format:
   
         $ covertool -cover all.coverdata -output coverage.xml -src src/
 
-   or:
-   
-   Configure rebar to generate reports in `Cobertura` format:
+## Rebar
 
-        {plugins, [rebar_covertool]}.
-        {cover_export_enabled, true}.
-        {covertool_eunit, {".eunit/eunit.coverdata", "eunit.coverage.xml"}}. % Source file name, output report file name
-        {covertool_ct, {"ct.coverdata", "ct.coverage.xml"}}. % Source file name, output report file name
-        {covertool_prefix_len, 2}. % Optional: Use module prefix as (imaginary) package name
+Configure rebar to generate reports in `Cobertura` format:
 
-   or:
-   
-   Configure rebar3 to generate reports in `Cobertura` format:
-   
-        {project_plugins, [rebar_covertool]}.
-        {cover_export_enabled, true}.
-        {covertool, [{coverdata_files, ["ct.coverdata", "eunit.coverdata"]}]}.
+```
+{plugins, [rebar_covertool]}.
+{cover_export_enabled, true}.
+{covertool_eunit, {".eunit/eunit.coverdata", "eunit.coverage.xml"}}. % Source file name, output report file name
+{covertool_ct, {"ct.coverdata", "ct.coverage.xml"}}. % Source file name, output report file name
+{covertool_prefix_len, 2}. % Optional: Use module prefix as (imaginary) package name
+```
 
-   or:
+## Rebar3
 
-   Configure mix to generate reports in `Cobertura` format:
+Configure rebar3 to generate reports in `Cobertura` format:
+
+```
+{project_plugins, [rebar_covertool]}.
+{cover_export_enabled, true}.
+{covertool, [{coverdata_files, ["ct.coverdata", "eunit.coverdata"]}]}.
+```
+
+## Mix
+
+Configure mix to generate reports in `Cobertura` format:
 
 ```elixir
-      def project do
-        [
-          test_coverage: [tool: :mix_covertool]
-        ]
-      end
+def project do
+  [
+    test_coverage: [tool: :mix_covertool]
+  ]
+end
 ```
-   
-4. Configure "Publish Cobertura Coverage Report" post-build action, set path
-to the generated `coverage.xml`
-5. Run the build. At the end, "Coverage Report" link should appear on project page.
 
 Screenshots
 -----------
