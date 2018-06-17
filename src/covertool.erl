@@ -263,27 +263,18 @@ rate({Covered, Valid}) -> [Res] = io_lib:format("~f", [Covered / Valid]), Res.
 
 % lookup source in source directory
 lookup_source(Module) ->
-    Sources = get(src),
-    Glob = "^" ++ atom_to_list(Module) ++ "\.erl\$",
-    Name = lists:foldl(
-             fun(SrcDir, false) ->
-                     Fun = fun (Name, _In) ->
-                                   % substract directory
-                                   case lists:prefix(SrcDir, Name) of
-                                       true -> lists:nthtail(length(SrcDir), Name);
-                                       false -> Name
-                                   end
-                           end,
-                     filelib:fold_files(SrcDir, Glob, true, Fun, false);
-                (_, Name) ->
-                     Name
-             end, false, Sources),
+    lookup_source(get(ebin), Module).
 
-    case Name of
-        false -> false;
-        [$/ | Relative] -> Relative;
-        _Other -> Name
-    end.
+lookup_source([EbinDir | RDirs], M) ->
+    Beam = io_lib:format("~s/~s.beam", [EbinDir, M]),
+    case beam_lib:chunks(Beam, [compile_info]) of
+        {ok, {M, [{compile_info, CompileInfo}]}} ->
+            proplists:get_value(source, CompileInfo);
+        _ ->
+            lookup_source(RDirs, M)
+    end;
+lookup_source(_, _) ->
+    false.
 
 % lookup start and end lines for function
 function_range({M, F, A}) ->
