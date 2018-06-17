@@ -39,6 +39,18 @@ Standalone:
         {project_plugins, [rebar_covertool]}.
         {cover_export_enabled, true}.
         {covertool, [{coverdata_files, ["ct.coverdata", "eunit.coverdata"]}]}.
+
+   or:
+
+   Configure mix to generate reports in `Cobertura` format:
+
+```elixir
+      def project do
+        [
+          test_coverage: [tool: :mix_covertool]
+        ]
+      end
+```
    
 4. Configure "Publish Cobertura Coverage Report" post-build action, set path
 to the generated `coverage.xml`
