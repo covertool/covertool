@@ -294,8 +294,10 @@ function_range([EbinDir | RDirs], M, F, A) ->
                 [] -> {0, 0}; %% Should never happen unless beam is out of sync
                 [{_, Line, F, A, _}] -> {Line, Line};
                 [{_, Line, F, A, _}, {eof, Next}] -> {Line, Next};
-                [{_, Line, F, A, _}, Following | _] ->
-                    {Line, element(2, Following) - 1}
+                [{_, Line, F, A, _}, {_, N, _, _, _} | _] when is_integer(N) ->
+                    {Line, N - 1};
+                [{_, Line, F, A, _} | _] ->
+                    {Line, Line}
             end
     end;
 function_range(_, _M, _F, _A) ->
