@@ -19,7 +19,6 @@ main([]) ->
     usage();
 main(Args) ->
     Config = process_args(Args, #config{appname = 'Application',
-                                        sources = ["src/"],
                                         beams = ["ebin/"]}),
     CoverData = Config#config.cover_data,
     io:format("Importing '~s' data file...~n", [CoverData]),
@@ -36,7 +35,6 @@ usage() ->
     io:format("Options:~n"),
     io:format("    -cover   CoverDataFile  Path to the cover exported data set (default: \"all.coverdata\")~n"),
     io:format("    -output  OutputFile     File to put generated report to (default: \"coverage.xml\")~n"),
-    io:format("    -src     SourceDir      Directory to look for sources (default: \"src\")~n"),
     io:format("    -ebin    EbinDir        Directory to look for beams (default: \"ebin\")~n"),
     io:format("    -prefix  PrefixLen      Length used for package name (default: 0)~n"),
     io:format("    -appname AppName        Application name to put in the report (default: \"Application\")~n"),
@@ -55,8 +53,6 @@ update_config(cover, Value, Config) ->
     Config#config{cover_data = Value};
 update_config(output, Value, Config) ->
     Config#config{output = Value};
-update_config(src, Value, Config) ->
-    Config#config{sources = string:tokens(Value, ",")};
 update_config(ebin, Value, Config) ->
     Config#config{beams = string:tokens(Value, ",")};
 update_config(prefix, Value, Config) ->
@@ -77,7 +73,6 @@ generate_report(Config, Modules) ->
         CoverData ->
             cover:import(CoverData)
     end,
-    put(src, Config#config.sources),
     put(ebin, Config#config.beams),
     io:format("Generating report '~s'...~n", [Output]),
     Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
@@ -96,7 +91,9 @@ generate_report(Config, Modules) ->
     {BranchesCovered, BranchesValid} = Result#result.branches,
     BranchRate = rate(Result#result.branches),
 
-    Sources = [{source, [filename:absname(SrcDir)]} || SrcDir <- get(src)],
+    {ok, Cwd} = file:get_cwd(),
+    Sources = [{source, [Cwd]}],
+
     Root = {coverage, [{timestamp, Timestamp},
                        {'line-rate', LineRate},
                        {'lines-covered', LinesCovered},

@@ -18,12 +18,9 @@ start( CompilePath, _Opts ) ->
             mix(raise, <<"Failed to cover compile directory">>)
     end,
 
-    {ok, Cwd} = file:get_cwd(),
-
     AppName = proplists:get_value(app, mix_project(config)),
-    SourceDir = filename:join(Cwd, "lib/"),
     BeamDir = binary:bin_to_list(mix_project(compile_path)),
-    Config = #config{appname = AppName, sources = [SourceDir], beams = [BeamDir]},
+    Config = #config{appname = AppName, beams = [BeamDir]},
 
     fun() ->
         covertool:generate_report(Config, cover:modules())

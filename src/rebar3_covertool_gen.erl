@@ -101,9 +101,7 @@ generate_apps( State, Apps, LogFile ) ->
 generate_app(State, App, Result) ->
     AppName = binary_to_atom( rebar_app_info:name( App ), latin1 ),
     OutputFile = filename:join(outdir(State), atom_to_list(AppName) ++ ".covertool.xml"),
-    SourceDir = filename:join( rebar_app_info:dir( App ), "src/" ),
-    Config = #config{ appname = AppName,  output = OutputFile,
-                      sources = [SourceDir] },
+    Config = #config{ appname = AppName, output = OutputFile},
     case covertool:generate_report( Config, cover:imported_modules() ) of
         ok -> Result;
         Otherwise -> Otherwise
