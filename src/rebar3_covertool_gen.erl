@@ -14,10 +14,13 @@ init( State ) ->
     Options = [{module, ?MODULE},
                {namespace, covertool},
                {name, generate},
-               {deps, [{default,app_discovery}]},
+               {deps, [{default, app_discovery}]},
                {example, "rebar3 covertool generate"},
-               {short_desc, "generate Cobertura output"},
-               {desc, "Process the rebar3 cover generated .coverdata files, and produce an Cobertura XML into the _build/test/covertool/ directory for each application in the rebar3 project."},
+               {short_desc, "Generate Cobertura output"},
+               {desc, "Process the rebar3 cover generated .coverdata files, "
+                      "and produce an Cobertura XML into the _build/test/covertool/ "
+                      "directory for each application in the rebar3 project."},
+               {opts, covertool_opts(State)},
                {profiles, [test]}],
     NewState = rebar_state:add_provider(State, providers:create(Options)),
     {ok, NewState}.
@@ -26,7 +29,7 @@ init( State ) ->
 do(State) ->
     OutputFiles = output_files(State),
     InputFiles = input_files(State),
-    Apps = rebar_state:project_apps(State),
+    Apps = get_apps(State),
     case generate( State, OutputFiles, InputFiles, Apps ) of
         ok ->
             {ok, State};
@@ -48,8 +51,7 @@ output_files(State) ->
 
 input_files(State) ->
     ProfileDir = rebar_dir:base_dir(State),
-    Config = rebar_state:get(State, covertool, []),
-    CoverDataFiles = proplists:get_value(coverdata_files, Config, ["eunit.coverdata", "ct.coverdata"]),
+    CoverDataFiles = coverdata_files(State),
     FullPaths = [filename:join([ProfileDir, "cover", File]) || File <- CoverDataFiles],
     filter_existing_inputs(FullPaths).
 
@@ -91,7 +93,12 @@ generate_import( [File | T], LogFile ) ->
     end;
 generate_import( [], LogFile ) ->
     {ok, LogFile}.
-            
+
+get_apps(State) ->
+    ProjectApps = [app_to_atom(rebar_app_info:name(PA))
+                   || PA <- rebar_state:project_apps(State)],
+    IncludeApps = include_apps(State),
+    lists:usort(ProjectApps ++ IncludeApps).      
 
 generate_apps( State, Apps, LogFile ) ->
     Result = lists:foldl( fun(App, Result) -> generate_app(State, App, Result) end, ok, Apps ),
@@ -99,9 +106,9 @@ generate_apps( State, Apps, LogFile ) ->
     Result.
 
 generate_app(State, App, Result) ->
-    AppName = binary_to_atom( rebar_app_info:name( App ), latin1 ),
-    OutputFile = filename:join(outdir(State), atom_to_list(AppName) ++ ".covertool.xml"),
-    Config = #config{ appname = AppName, output = OutputFile},
+    OutputFile = filename:join(outdir(State), atom_to_list(App) ++ ".covertool.xml"),
+    EbinPath = [filename:join([rebar_dir:base_dir(State), "lib", atom_to_list(App), "ebin"])],
+    Config = #config{ appname = App, output = OutputFile, beams = [EbinPath]},
     case covertool:generate_report( Config, cover:imported_modules() ) of
         ok -> Result;
         Otherwise -> Otherwise
@@ -120,3 +127,36 @@ file_exists(Filename) ->
         Reason ->
             exit(Reason)
     end.
+
+command_line_opts(State) ->
+    {Opts, _} = rebar_state:command_parsed_args(State),
+    Opts.
+
+config_opts(State) ->
+    rebar_state:get(State, covertool, []).
+
+include_apps(State) ->
+    Command = proplists:get_value(include_apps, command_line_opts(State), undefined),
+    Config = proplists:get_value(include_apps, config_opts(State), undefined),
+    Apps = case {Command, Config} of
+        {undefined, undefined} -> [];
+        {undefined, CfgApps}   -> CfgApps;
+        {CmdApps, _}           -> string:tokens(CmdApps, ",")
+    end,
+    [app_to_atom(A) || A <- Apps].
+
+coverdata_files(State) ->
+    Config = config_opts(State),
+    proplists:get_value(coverdata_files, Config, ["eunit.coverdata", "ct.coverdata"]).
+
+covertool_opts(_State) ->
+    [{include_apps, $a, "include_apps", string, help(include_apps)}].
+
+help(include_apps) ->
+    "A CSV of OTP app dependencies to include in covertool output. "
+    "Note that this data must be present in the coverdata files to begin with; "
+    "this can be accomplished using a ct cover.spec file, etc.".
+
+app_to_atom(A) when is_atom(A) -> A;
+app_to_atom(S) when is_list(S) -> list_to_atom(S);
+app_to_atom(B) when is_binary(B) -> binary_to_atom(B, latin1).

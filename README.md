@@ -47,7 +47,16 @@ Configure rebar3 to generate reports in `Cobertura` format:
 ```
 {project_plugins, [rebar_covertool]}.
 {cover_export_enabled, true}.
-{covertool, [{coverdata_files, ["ct.coverdata", "eunit.coverdata"]}]}.
+{covertool, [{coverdata_files, ["ct.coverdata", "eunit.coverdata"]},
+             {include_apps, [dep0, dep1]}]}.
+```
+
+The `include_apps` option allows specifying a list of dependent OTP applications to include in the coverage export (default: `[]`). Note that the coverage data must be included in the input `.coverdata` file in order for any values to be populated in the output XML file. This can be done using the [ct cover spec file](http://erlang.org/doc/apps/common_test/cover_chapter.html#id85714).
+
+The `include_apps` option can also be specified via the command line as a CSV of application names, e.g.:
+
+```
+rebar3 covertool generate -a"dep0,dep1"
 ```
 
 ## Mix
@@ -65,7 +74,6 @@ end
 Screenshots
 -----------
 
-![Screenshot1](covertool/raw/master/screenshots/shot1.png)
+![Screenshot1](screenshots/shot1.png)
 
-![Screenshot2](covertool/raw/master/screenshots/shot2.png)
-
+![Screenshot2](screenshots/shot2.png)
