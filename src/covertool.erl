@@ -19,7 +19,6 @@ main([]) ->
     usage();
 main(Args) ->
     Config = process_args(Args, #config{appname = 'Application',
-                                        sources = ["src/"],
                                         beams = ["ebin/"]}),
     CoverData = Config#config.cover_data,
     io:format("Importing '~s' data file...~n", [CoverData]),
@@ -36,7 +35,6 @@ usage() ->
     io:format("Options:~n"),
     io:format("    -cover   CoverDataFile  Path to the cover exported data set (default: \"all.coverdata\")~n"),
     io:format("    -output  OutputFile     File to put generated report to (default: \"coverage.xml\")~n"),
-    io:format("    -src     SourceDir      Directory to look for sources (default: \"src\")~n"),
     io:format("    -ebin    EbinDir        Directory to look for beams (default: \"ebin\")~n"),
     io:format("    -prefix  PrefixLen      Length used for package name (default: 0)~n"),
     io:format("    -appname AppName        Application name to put in the report (default: \"Application\")~n"),
@@ -55,8 +53,6 @@ update_config(cover, Value, Config) ->
     Config#config{cover_data = Value};
 update_config(output, Value, Config) ->
     Config#config{output = Value};
-update_config(src, Value, Config) ->
-    Config#config{sources = string:tokens(Value, ",")};
 update_config(ebin, Value, Config) ->
     Config#config{beams = string:tokens(Value, ",")};
 update_config(prefix, Value, Config) ->
@@ -77,7 +73,6 @@ generate_report(Config, Modules) ->
         CoverData ->
             cover:import(CoverData)
     end,
-    put(src, Config#config.sources),
     put(ebin, Config#config.beams),
     io:format("Generating report '~s'...~n", [Output]),
     Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
@@ -96,7 +91,9 @@ generate_report(Config, Modules) ->
     {BranchesCovered, BranchesValid} = Result#result.branches,
     BranchRate = rate(Result#result.branches),
 
-    Sources = [{source, [filename:absname(SrcDir)]} || SrcDir <- get(src)],
+    {ok, Cwd} = file:get_cwd(),
+    Sources = [{source, [Cwd]}],
+
     Root = {coverage, [{timestamp, Timestamp},
                        {'line-rate', LineRate},
                        {'lines-covered', LinesCovered},
@@ -263,27 +260,28 @@ rate({Covered, Valid}) -> [Res] = io_lib:format("~f", [Covered / Valid]), Res.
 
 % lookup source in source directory
 lookup_source(Module) ->
-    Sources = get(src),
-    Glob = "^" ++ atom_to_list(Module) ++ "\.erl\$",
-    Name = lists:foldl(
-             fun(SrcDir, false) ->
-                     Fun = fun (Name, _In) ->
-                                   % substract directory
-                                   case lists:prefix(SrcDir, Name) of
-                                       true -> lists:nthtail(length(SrcDir), Name);
-                                       false -> Name
-                                   end
-                           end,
-                     filelib:fold_files(SrcDir, Glob, true, Fun, false);
-                (_, Name) ->
-                     Name
-             end, false, Sources),
+    lookup_source(get(ebin), Module).
 
-    case Name of
-        false -> false;
-        [$/ | Relative] -> Relative;
-        _Other -> Name
-    end.
+lookup_source([EbinDir | RDirs], M) ->
+    Beam = io_lib:format("~s/~s.beam", [EbinDir, M]),
+    case beam_lib:chunks(Beam, [compile_info]) of
+        {ok, {M, [{compile_info, CompileInfo}]}} ->
+            AbsPath = proplists:get_value(source, CompileInfo),
+            relative_to_cwd(AbsPath);
+        _ ->
+            lookup_source(RDirs, M)
+    end;
+lookup_source(_, _) ->
+    false.
+
+relative_to_cwd(AbsPath) ->
+    {ok, Cwd} = file:get_cwd(),
+    relative_to(filename:split(AbsPath), filename:split(Cwd)).
+
+relative_to([H|T1], [H|T2]) ->
+    relative_to(T1, T2);
+relative_to(Path, _) ->
+    filename:join(Path).
 
 % lookup start and end lines for function
 function_range({M, F, A}) ->
@@ -303,8 +301,10 @@ function_range([EbinDir | RDirs], M, F, A) ->
                 [] -> {0, 0}; %% Should never happen unless beam is out of sync
                 [{_, Line, F, A, _}] -> {Line, Line};
                 [{_, Line, F, A, _}, {eof, Next}] -> {Line, Next};
-                [{_, Line, F, A, _}, Following | _] ->
-                    {Line, element(2, Following) - 1}
+                [{_, Line, F, A, _}, {_, N, _, _, _} | _] when is_integer(N) ->
+                    {Line, N - 1};
+                [{_, Line, F, A, _} | _] ->
+                    {Line, Line}
             end
     end;
 function_range(_, _M, _F, _A) ->
