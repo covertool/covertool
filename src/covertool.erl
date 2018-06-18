@@ -269,12 +269,22 @@ lookup_source([EbinDir | RDirs], M) ->
     Beam = io_lib:format("~s/~s.beam", [EbinDir, M]),
     case beam_lib:chunks(Beam, [compile_info]) of
         {ok, {M, [{compile_info, CompileInfo}]}} ->
-            proplists:get_value(source, CompileInfo);
+            AbsPath = proplists:get_value(source, CompileInfo),
+            relative_to_cwd(AbsPath);
         _ ->
             lookup_source(RDirs, M)
     end;
 lookup_source(_, _) ->
     false.
+
+relative_to_cwd(AbsPath) ->
+    {ok, Cwd} = file:get_cwd(),
+    relative_to(filename:split(AbsPath), filename:split(Cwd)).
+
+relative_to([H|T1], [H|T2]) ->
+    relative_to(T1, T2);
+relative_to(Path, _) ->
+    filename:join(Path).
 
 % lookup start and end lines for function
 function_range({M, F, A}) ->
