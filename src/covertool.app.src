@@ -1,11 +1,16 @@
 {application, covertool,
  [
   {description, "Covertool Build Plugin"},
-  {vsn, "1"},
+  {vsn, "1.2.0"},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib
                  ]},
-  {env, []}
+  {env, []},
+
+  {pkg_name, rebar_covertool},
+  {maintainers, ["Tristan Sloughter", "Ivan Dubrov"]},
+  {licenses, ["2-Clause BSD"]},
+  {links, [{"Github", "https://github.com/idubrov/covertool"}]}
  ]}.
