@@ -135,7 +135,7 @@ generate_packages(AppName, PrefixLen, Modules) ->
 %% - module prefix (name divided by "_")
 package_name(AppName, PrefixLen, Module)
     when is_atom(AppName), is_atom(Module) ->
-
+    AppNameStr = atom_to_list(AppName),
     SourceDirs = case lookup_source(Module) of
                     false ->
                         [];
@@ -144,7 +144,13 @@ package_name(AppName, PrefixLen, Module)
                             "." ->
                                 [];
                             DirName ->
-                                string:tokens(DirName, "/")
+                                case string:tokens(DirName, "/") of
+                                    ["_build", _Profile, "lib", AppNameStr, "src" | Rest] ->
+                                        %% Remove rebar3 boilerplate path from package name
+                                        %% when the source file is in the app's default src dir
+                                        Rest;
+                                    OtherDir -> OtherDir
+                                end
                         end
                 end,
     Prefix = case PrefixLen of
@@ -154,7 +160,7 @@ package_name(AppName, PrefixLen, Module)
                      lists:sublist(string:tokens(atom_to_list(Module), "_"),
                                    PrefixLen)
              end,
-    string:join([atom_to_list(AppName)] ++ SourceDirs ++ Prefix, ".").
+    string:join([AppNameStr] ++ SourceDirs ++ Prefix, ".").
 
 generate_package(PackageName, Modules) ->
     Classes = generate_classes(Modules),
