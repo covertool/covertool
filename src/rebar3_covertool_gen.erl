@@ -108,7 +108,8 @@ generate_apps( State, Apps, LogFile ) ->
 generate_app(State, App, Result) ->
     OutputFile = filename:join(outdir(State), atom_to_list(App) ++ ".covertool.xml"),
     EbinPath = [filename:join([rebar_dir:base_dir(State), "lib", atom_to_list(App), "ebin"])],
-    Config = #config{ appname = App, output = OutputFile, beams = [EbinPath]},
+    PrefixLen = prefix_len(State),
+    Config = #config{ appname = App, output = OutputFile, beams = [EbinPath], prefix_len = PrefixLen},
     case covertool:generate_report( Config, cover:imported_modules() ) of
         ok -> Result;
         Otherwise -> Otherwise
@@ -145,17 +146,32 @@ include_apps(State) ->
     end,
     [app_to_atom(A) || A <- Apps].
 
+prefix_len(State) ->
+    Command = proplists:get_value(prefix_len, command_line_opts(State), undefined),
+    Config = proplists:get_value(prefix_len, config_opts(State), undefined),
+    case {Command, Config} of
+        {undefined, undefined} -> 0;
+        {undefined, PrefixLen}   -> PrefixLen;
+        {PrefixLen, _}           -> PrefixLen
+    end.
+
 coverdata_files(State) ->
     Config = config_opts(State),
     proplists:get_value(coverdata_files, Config, ["eunit.coverdata", "ct.coverdata"]).
 
 covertool_opts(_State) ->
-    [{include_apps, $a, "include_apps", string, help(include_apps)}].
+    [{include_apps, $a, "include_apps", string, help(include_apps)},
+     {prefix_len, $p, "prefix_len", integer, help(prefix_len)}].
 
 help(include_apps) ->
     "A CSV of OTP app dependencies to include in covertool output. "
     "Note that this data must be present in the coverdata files to begin with; "
-    "this can be accomplished using a ct cover.spec file, etc.".
+    "this can be accomplished using a ct cover.spec file, etc.";
+help(prefix_len) ->
+    "[Optional] include the first N sections of the '_'-delimited module name in "
+    "the package name. For example, with a prefix_len of 2 and a module named "
+    "'app0_worker_srv_sup', the term 'app0.worker' would be added to the end of "
+    "the package name. Default: 0".
 
 app_to_atom(A) when is_atom(A) -> A;
 app_to_atom(S) when is_list(S) -> list_to_atom(S);
