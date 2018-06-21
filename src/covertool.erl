@@ -262,7 +262,7 @@ sum({Covered1, Valid1}, {Covered2, Valid2}) ->
     {Covered1 + Covered2, Valid1 + Valid2}.
 
 rate({_Covered, 0}) -> "0.0";
-rate({Covered, Valid}) -> [Res] = io_lib:format("~f", [Covered / Valid]), Res.
+rate({Covered, Valid}) -> float_to_list(Covered / Valid, [{decimals, 3}, compact]).
 
 % lookup source in source directory
 lookup_source(Module) ->
