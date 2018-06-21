@@ -6,6 +6,15 @@
 %% application entry point
 -export([generate_report/2]).
 
+%% rebar3 callbacks
+-export([init/1]).
+
+%% rebar2 callbacks
+-export([eunit/2, ct/2]).
+
+%% mix callbacks
+-export([start/2]).
+
 -include("covertool.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
@@ -28,6 +37,25 @@ main(Args) ->
     generate_report(Config, cover:imported_modules()),
     io:format("Done.~n"),
     ok.
+
+%% Plugin callbacks
+
+%% Rebar3 plugin registration callback
+init(State) ->
+    rebar3_covertool_gen:init(State).
+
+%% Rebar plugin callbacks
+eunit(Config, AppFile) ->
+    rebar_covertool:eunit(Config, AppFile).
+
+ct(Config, AppFile) ->
+    rebar_covertool:ct(Config, AppFile).
+
+%% Mix callbacks
+start(CompilePath, Opts) ->
+    mix_covertool:start(CompilePath, Opts).
+
+%% End of plugin callbacks
 
 usage() ->
     ScriptName = escript:script_name(),
