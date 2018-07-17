@@ -19,8 +19,9 @@ start( CompilePath, _Opts ) ->
     end,
 
     AppName = proplists:get_value(app, mix_project(config)),
+    {ok, SrcDir} = file:get_cwd(),
     BeamDir = binary:bin_to_list(mix_project(compile_path)),
-    Config = #config{appname = AppName, beams = [BeamDir]},
+    Config = #config{appname = AppName, sources = [SrcDir], beams = [BeamDir]},
 
     fun() ->
         covertool:generate_report(Config, cover:modules())

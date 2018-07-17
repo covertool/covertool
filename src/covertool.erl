@@ -18,8 +18,7 @@
 main([]) ->
     usage();
 main(Args) ->
-    Config = process_args(Args, #config{appname = 'Application',
-                                        beams = ["ebin/"]}),
+    Config = process_args(Args, #config{}),
     CoverData = Config#config.cover_data,
     io:format("Importing '~s' data file...~n", [CoverData]),
     cover:import(CoverData),
@@ -36,6 +35,7 @@ usage() ->
     io:format("    -cover   CoverDataFile  Path to the cover exported data set (default: \"all.coverdata\")~n"),
     io:format("    -output  OutputFile     File to put generated report to (default: \"coverage.xml\")~n"),
     io:format("    -ebin    EbinDir        Directory to look for beams (default: \"ebin\")~n"),
+    io:format("    -src     SourceDir      Directory to look for sources (default: \"src\")~n"),
     io:format("    -prefix  PrefixLen      Length used for package name (default: 0)~n"),
     io:format("    -appname AppName        Application name to put in the report (default: \"Application\")~n"),
     ok.
@@ -53,6 +53,8 @@ update_config(cover, Value, Config) ->
     Config#config{cover_data = Value};
 update_config(output, Value, Config) ->
     Config#config{output = Value};
+update_config(src, Value, Config) ->
+    Config#config{sources = string:tokens(Value, ",")};
 update_config(ebin, Value, Config) ->
     Config#config{beams = string:tokens(Value, ",")};
 update_config(prefix, Value, Config) ->
@@ -73,6 +75,7 @@ generate_report(Config, Modules) ->
         CoverData ->
             cover:import(CoverData)
     end,
+    put(src, Config#config.sources),
     put(ebin, Config#config.beams),
     io:format("Generating report '~s'...~n", [Output]),
     Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
@@ -91,8 +94,7 @@ generate_report(Config, Modules) ->
     {BranchesCovered, BranchesValid} = Result#result.branches,
     BranchRate = rate(Result#result.branches),
 
-    {ok, Cwd} = file:get_cwd(),
-    Sources = [{source, [Cwd]}],
+    Sources = [{source, [filename:absname(SrcDir)]} || SrcDir <- get(src)],
 
     Root = {coverage, [{timestamp, Timestamp},
                        {'line-rate', LineRate},
@@ -144,13 +146,7 @@ package_name(AppName, PrefixLen, Module)
                             "." ->
                                 [];
                             DirName ->
-                                case string:tokens(DirName, "/") of
-                                    ["_build", _Profile, "lib", AppNameStr, "src" | Rest] ->
-                                        %% Remove rebar3 boilerplate path from package name
-                                        %% when the source file is in the app's default src dir
-                                        Rest;
-                                    OtherDir -> OtherDir
-                                end
+                                string:tokens(DirName, "/")
                         end
                 end,
     Prefix = case PrefixLen of
@@ -273,21 +269,27 @@ lookup_source([EbinDir | RDirs], M) ->
     case beam_lib:chunks(Beam, [compile_info]) of
         {ok, {M, [{compile_info, CompileInfo}]}} ->
             AbsPath = proplists:get_value(source, CompileInfo),
-            relative_to_cwd(AbsPath);
+            relative_to_src_path(AbsPath);
         _ ->
             lookup_source(RDirs, M)
     end;
 lookup_source(_, _) ->
     false.
 
-relative_to_cwd(AbsPath) ->
-    {ok, Cwd} = file:get_cwd(),
-    relative_to(filename:split(AbsPath), filename:split(Cwd)).
+relative_to_src_path(AbsPath) ->
+    Src = get(src),
+    relative_to_src_path(Src, AbsPath).
 
-relative_to([H|T1], [H|T2]) ->
-    relative_to(T1, T2);
-relative_to(Path, _) ->
-    filename:join(Path).
+relative_to_src_path([SrcDir|RDirs], AbsPath) ->
+    case lists:prefix(SrcDir, AbsPath) of
+        true -> ensure_relative_path(lists:nthtail(length(SrcDir), AbsPath));
+        false -> relative_to_src_path(RDirs, AbsPath)
+    end;
+relative_to_src_path([], AbsPath) ->
+    AbsPath.
+
+ensure_relative_path([$/ | RelPath]) -> RelPath;
+ensure_relative_path(RelPath) -> RelPath.
 
 % lookup start and end lines for function
 function_range({M, F, A}) ->
