@@ -18,8 +18,11 @@
 %% Rebar3 plugin registration callback
 %% ===================================================================
 init(State) ->
+    rebar_api:warn("The 'covertool' plugin is being referenced by deprecated
+                    name 'rebar_covertool'. Use 'covertool' instead in your
+                    rebar.config file. See the covertool README for more
+                    information.", []),
     rebar3_covertool_gen:init( State ).
-
 
 %% ===================================================================
 %% Rebar2 plugin implementation
