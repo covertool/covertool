@@ -1,11 +1,19 @@
-Cover-to-Cobertura Conversion Tool 
-==================================
+# Cover-to-Cobertura Conversion Tool 
+
+[![Hex.pm version](https://img.shields.io/hexpm/v/rebar_covertool.svg?style=flat)](https://hex.pm/packages/rebar_covertool)
 
 A simple tool to convert exported Erlang `cover` data sets into Cobertura XML
 reports. The report could be then feed to the Jenkins Cobertura plug-in.
 
-Usage
------
+## Plugin rename notice
+
+This plugin is currently known on [Hex](https://hex.pm) as [`rebar_covertool`](https://hex.pm/packages/rebar_covertool), although the repository and application have always been called `covertool`. That was originally because the rebar2 plugin was built into the `rebar_covertool` module instead of the `covertool` module. We will imminently introduce the package on Hex as [`covertool`](https://hex.pm/packages/covertool) 2.0.0, and the [`rebar_covertool`](https://hex.pm/packages/rebar_covertool) package will be **retired**.
+
+As of `covertool` 1.3.0, the `covertool` module now contains callbacks for all supported plugin formats (rebar 2, rebar3, and mix). Going forward, referencing `covertool` as `rebar_covertool` in plugins is **deprecated**. Use `covertool` instead (see [usage](#usage) below).
+
+This change was made to make the applications more straightforward to integrate with. See [#42](https://github.com/covertool/covertool/issues/42) for more information.
+
+## Usage
 
 1. Install Jenkins Cobertura Plug-in.
 2. Pick one of the options below ([standalone](#standalone)/[rebar](#rebar)/[rebar3](#rebar3)/[mix](#mix))
@@ -13,7 +21,7 @@ Usage
 to the generated `coverage.xml`
 4. Run the build. At the end, "Coverage Report" link should appear on project page.
 
-## Standalone
+### Standalone
 
 1. Build command line script (WARNING: EUnit test for plugin may fail for OTP =< 17.3, due to a bug in `cover` app)
 
@@ -28,12 +36,15 @@ to the generated `coverage.xml`
   
         $ covertool -cover all.coverdata -output coverage.xml -src src/
 
-## Rebar
+### Rebar
 
 Configure rebar to generate reports in `Cobertura` format:
 
 ```
-{plugins, [rebar_covertool]}.
+{deps, [
+    {covertool, "", {git, "https://github.com/covertool/covertool.git", {branch, master}}}
+]}.
+{plugins, [covertool]}.
 {cover_export_enabled, true}.
 {covertool_eunit, {".eunit/eunit.coverdata", "eunit.coverage.xml"}}. % Source file name, output report file name
 {covertool_ct, {"ct.coverdata", "ct.coverage.xml"}}. % Source file name, output report file name
@@ -42,12 +53,16 @@ Configure rebar to generate reports in `Cobertura` format:
 
 The `covertool_prefix_len` option allows including the first *n* sections of the '_'-delimited module name in the package name. For example, with a `covertool_prefix_len` of 2 and a module named `app0_worker_srv_sup`, the term `app0.worker` would be added to the end of the package name. Defaults to 0 (no module prefix included).
 
-## Rebar3
+### Rebar3
 
 Configure rebar3 to generate reports in `Cobertura` format:
 
 ```
-{project_plugins, [rebar_covertool]}.
+{project_plugins, [covertool]}.
+% Alternate form (w/o Hex):
+% {project_plugins, [
+%     {covertool, {git, "https://github.com/covertool/covertool.git", {branch, "master"}}}
+% ]}.
 {cover_export_enabled, true}.
 {covertool, [{coverdata_files, ["ct.coverdata", "eunit.coverdata"]},
              {include_apps, [dep0, dep1]},
@@ -68,20 +83,19 @@ The `prefix_len` option allows including the first *n* sections of the '_'-delim
 rebar3 covertool generate -p2
 ```
 
-## Mix
+### Mix
 
 Configure mix to generate reports in `Cobertura` format:
 
 ```elixir
 def project do
   [
-    test_coverage: [tool: :mix_covertool]
+    test_coverage: [tool: :covertool]
   ]
 end
 ```
 
-Screenshots
------------
+## Screenshots
 
 ![Screenshot1](screenshots/shot1.png)
 
