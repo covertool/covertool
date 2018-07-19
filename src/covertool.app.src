@@ -1,7 +1,7 @@
 {application, covertool,
  [
-  {description, "Covertool Build Plugin"},
-  {vsn, "1.2.0"},
+  {description, "Covertool Build Plugin for Cobertura XML reports"},
+  {vsn, "1.3.0"},
   {registered, []},
   {applications, [
                   kernel,
@@ -10,7 +10,7 @@
   {env, []},
 
   {pkg_name, rebar_covertool},
-  {maintainers, ["Tristan Sloughter", "Ivan Dubrov"]},
+  {maintainers, ["Tristan Sloughter", "Timmo Verlaan", "Nicholas Lundgaard", "Ivan Dubrov"]},
   {licenses, ["2-Clause BSD"]},
-  {links, [{"Github", "https://github.com/idubrov/covertool"}]}
+  {links, [{"Github", "https://github.com/covertool/covertool"}]}
  ]}.
