@@ -1,15 +1,15 @@
 # Cover-to-Cobertura Conversion Tool 
 
-[![Hex.pm version](https://img.shields.io/hexpm/v/rebar_covertool.svg?style=flat)](https://hex.pm/packages/rebar_covertool)
+[![Hex.pm version](https://img.shields.io/hexpm/v/covertool.svg?style=flat)](https://hex.pm/packages/covertool)
 
 A simple tool to convert exported Erlang `cover` data sets into Cobertura XML
 reports. The report could be then feed to the Jenkins Cobertura plug-in.
 
 ## Plugin rename notice
 
-This plugin is currently known on [Hex](https://hex.pm) as [`rebar_covertool`](https://hex.pm/packages/rebar_covertool), although the repository and application have always been called `covertool`. That was originally because the rebar2 plugin was built into the `rebar_covertool` module instead of the `covertool` module. We will imminently introduce the package on Hex as [`covertool`](https://hex.pm/packages/covertool) 2.0.0, and the [`rebar_covertool`](https://hex.pm/packages/rebar_covertool) package will be **retired**.
+This plugin is now known on [Hex](https://hex.pm) as [`covertool`](https://hex.pm/packages/covertool). Previously, is was called [`rebar_covertool`](https://hex.pm/packages/rebar_covertool). That package name is now **retired**, although it will remain compatible.
 
-As of `covertool` 1.3.0, the `covertool` module now contains callbacks for all supported plugin formats (rebar 2, rebar3, and mix). Going forward, referencing `covertool` as `rebar_covertool` in plugins is **deprecated**. Use `covertool` instead (see [usage](#usage) below).
+As of `covertool` 1.3.0, the `covertool` Erlang module now contains callbacks for all supported plugin formats (rebar 2, rebar3, and mix). Going forward, referencing `covertool` as `rebar_covertool` or `mix_covertool` in plugins is **deprecated**. Use `covertool` instead (see [usage](#usage) below).
 
 This change was made to make the applications more straightforward to integrate with. See [#42](https://github.com/covertool/covertool/issues/42) for more information.
 
