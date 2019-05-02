@@ -193,7 +193,7 @@ generate_package(PackageName, Modules) ->
                       {'branch-rate', rate(Classes#result.branches)},
                       {complexity, 0}],
             [{classes, Classes#result.data}]},
-    #result{data = Data}.
+    Classes#result{data = Data}.
 
 % generate <classes> element, each Erlang module is "class"
 generate_classes(Modules) ->
