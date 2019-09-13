@@ -219,7 +219,8 @@ generate_class(Module) ->
                   Covered = case Value of 0 -> 0; _Other -> 1 end,
                   LineCoverage = sum(Result#result.line, {Covered, 1}), % add one line to the summary
                   Data = {line, [{number, Line},
-                                 {hits, Value}],
+                                 {hits, Value},
+                                 {branch, "False"}],
                           []},
                   {Data, Result#result{line = LineCoverage}}
           end,
