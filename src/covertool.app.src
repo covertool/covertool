@@ -6,7 +6,6 @@
   {applications, [kernel, stdlib]},
   {env, []},
   {pkg_name, covertool},
-  {maintainers, ["Tristan Sloughter", "Timmo Verlaan", "Nicholas Lundgaard", "Ivan Dubrov"]},
   {licenses, ["2-Clause BSD"]},
   {links, [{"Github", "https://github.com/covertool/covertool"}]}
  ]}.
