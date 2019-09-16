@@ -1,6 +1,6 @@
 # Cover-to-Cobertura Conversion Tool 
 
-[![Build Status](https://travis-ci.org/nalundgaard/covertool.svg?branch=master)](https://travis-ci.org/nalundgaard/covertool)
+[![Build Status](https://travis-ci.org/covertool/covertool.svg?branch=master)](https://travis-ci.org/covertool/covertool)
 
 [![Hex.pm version](https://img.shields.io/hexpm/v/covertool.svg?style=flat)](https://hex.pm/packages/covertool)
 
