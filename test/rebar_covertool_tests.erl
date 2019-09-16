@@ -2,8 +2,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--define(TMP_DIR, "tmp_eunit/").
-
 %% ====================================================================
 %% Rebar covertool plugin tests
 %% ====================================================================
@@ -12,11 +10,11 @@ eunit_test_() ->
     {"Ensure Cover runs with tests in a test dir and no defined suite",
      setup,
      fun() ->
-        setup_project(),
-         rebar("-v compile eunit ct")
+        ProjectSetupResult = setup_project(),
+         {ProjectSetupResult, rebar("-v compile eunit ct")}
      end,
      fun teardown/1,
-     fun(RebarOut) ->
+     fun({_ProjectSetupResult, RebarOut}) ->
              [{"Plugin is found",
                ?_assert(string:str(RebarOut, "WARN:  Missing plugins:") =:= 0)},
 
@@ -74,7 +72,7 @@ expected_cover_generated_files() ->
 
 -define(rebar_config,
         ["{covertool_app_name, 'otherapp'}.\n",
-         "{lib_dirs, [\"../../../\"]}.\n",
+         "{lib_dirs, [\"../lib\"]}.\n",
          "{plugins, [rebar_covertool]}.\n",
          "{cover_enabled, true}.\n",
          "{cover_export_enabled, true}.\n",
@@ -83,17 +81,22 @@ expected_cover_generated_files() ->
 
 -define(cover_spec,
         ["{export, \"ct.coverdata\"}.\n",
-         "{incl_dirs, [\"../../../test\", \"../../../src\"]}.\n"]).
+         "{incl_dirs, [\"../test\", \"../src\"]}.\n"]).
 
-make_tmp_dir() ->
-    ok = file:make_dir(?TMP_DIR).
+make_tmp_dir(StartCWD) ->
+    TmpDir = filename:join([StartCWD, "_build", "test", "tmp_eunit"]),
+    ok = rebar_file_utils:rm_rf(TmpDir),
+    ok = file:make_dir(TmpDir),
+    TmpDir.
 
 setup_environment() ->
-    ok = make_tmp_dir(),
-    ok = file:set_cwd(?TMP_DIR).
+    {ok, StartCWD} = file:get_cwd(),
+    TmpDir = make_tmp_dir(StartCWD),
+    ok = file:set_cwd(TmpDir),
+    {StartCWD, TmpDir}.
 
 setup_project() ->
-    ok = setup_environment(),
+    {StartCWD, TmpDir} = setup_environment(),
     rebar("create-app appid=myapp"),
     ok = file:make_dir("ebin"),
     ok = file:make_dir("test"),
@@ -101,15 +104,12 @@ setup_project() ->
     ok = file:write_file("src/myapp_mymod.erl", ?myapp_mymod),
     ok = file:write_file("test/myapp_mymod_SUITE.erl", ?myapp_mymod_SUITE),
     ok = file:write_file("test/cover.spec", ?cover_spec),
-    ok = file:write_file("rebar.config", ?rebar_config).
+    ok = file:write_file("rebar.config", ?rebar_config),
+    {StartCWD, TmpDir}.
 
-
-teardown(_) ->
-    ok = file:set_cwd(".."),
-    ok = remove_tmp_dir().
-
-remove_tmp_dir() ->
-    ok = rebar_file_utils:rm_rf(?TMP_DIR).
+teardown({{StartCWD, TmpDir}, _RebarOut}) ->
+    ok = file:set_cwd(StartCWD),
+    ok = rebar_file_utils:rm_rf(TmpDir).
 
 %% ====================================================================
 %% Helper Functions

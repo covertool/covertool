@@ -1,8 +1,7 @@
-deps/
-ebin/
-covertool
+/_build
+/covertool
+TEST-*.xml
 rpc_monitor*
-.eunit
 .project
 .settings
 erlide.log
