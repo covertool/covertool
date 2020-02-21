@@ -3,11 +3,15 @@
 .PHONY : all deps compile test clean
 all: deps compile test
 REBAR?=rebar
+REBAR3?=rebar3
 deps:
-	@$(REBAR) get-deps
+	@$(REBAR3) get-deps
 compile:
-	@$(REBAR) compile escriptize
+	@$(REBAR3) compile
+	@$(REBAR3) escriptize
+	@cp -f _build/default/bin/covertool .
 test:
-	-@$(REBAR) skip_deps=true eunit
+	-@$(REBAR3) eunit
 clean:
-	@$(REBAR) clean
+	@$(REBAR3) clean
+	@rm -f covertool
