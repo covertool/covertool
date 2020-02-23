@@ -31,9 +31,9 @@ main(Args) ->
     CoverData = Config#config.cover_data,
     io:format("Importing '~s' data file...~n", [CoverData]),
     cover:import(CoverData),
-    io:format("Found ~w modules.~n", [length(cover:imported_modules())]),
-
-    generate_report(Config, cover:imported_modules()),
+    Modules = cover:imported_modules(),
+    io:format("Found ~w modules.~n", [length(Modules)]),
+    generate_report(Config#config{cover_data = no_import}, Modules),
     io:format("Done.~n"),
     ok.
 
