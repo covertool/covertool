@@ -297,8 +297,10 @@ lookup_source([EbinDir | RDirs], M) ->
     Beam = io_lib:format("~s/~s.beam", [EbinDir, M]),
     case beam_lib:chunks(Beam, [compile_info]) of
         {ok, {M, [{compile_info, CompileInfo}]}} ->
-            AbsPath = proplists:get_value(source, CompileInfo),
-            relative_to_src_path(AbsPath);
+            case proplists:get_value(source, CompileInfo) of
+                undefined -> false;
+                AbsPath -> relative_to_src_path(AbsPath)
+            end;
         _ ->
             lookup_source(RDirs, M)
     end;
