@@ -167,7 +167,8 @@ coverdata_files(State) ->
 
 covertool_opts(_State) ->
     [{include_apps, $a, "include_apps", string, help(include_apps)},
-     {prefix_len, $p, "prefix_len", integer, help(prefix_len)}].
+     {prefix_len, $p, "prefix_len", integer, help(prefix_len)},
+     {summary, $s, "summary", boolean, help(summary)}].
 
 help(include_apps) ->
     "A CSV of OTP app dependencies to include in covertool output. "
@@ -177,7 +178,10 @@ help(prefix_len) ->
     "[Optional] include the first N sections of the '_'-delimited module name in "
     "the package name. For example, with a prefix_len of 2 and a module named "
     "'app0_worker_srv_sup', the term 'app0.worker' would be added to the end of "
-    "the package name. Default: 0".
+    "the package name. Default: 0";
+help(summary) ->
+    "Print summary of the results to the standard output. "
+    "Useful for CI jobs. Default: false".
 
 app_to_atom(A) when is_atom(A) -> A;
 app_to_atom(S) when is_list(S) -> list_to_atom(S);

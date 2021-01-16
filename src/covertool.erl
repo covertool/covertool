@@ -135,6 +135,15 @@ generate_report(Config, Modules) ->
              {packages, Result#result.data}]},
     Report = xmerl:export_simple([Root], xmerl_xml, [{prolog, Prolog}]),
     write_output(Report, Output),
+    if
+        Config#config.summary ->
+            io:format("Line total: ~s~nBranch total: ~s~n", [
+                                                             percentage(Result#result.line),
+                                                             percentage(Result#result.branches)
+                                                            ]);
+        true ->
+            ok
+    end,
     ok.
 
 generate_packages(AppName, PrefixLen, Modules) ->
@@ -225,8 +234,8 @@ generate_class(Module) ->
     {ok, Lines0} = cover:analyse(Module, calls, line),
     Lines = dedup(Lines0),
 
-    % XXX: ignore zero-indexed line, for some reason it is always present and always not hit
-    Filter = fun({{_Module, 0}, 0}) -> false;
+    % ignore zero-indexed lines, these are lines for generated code
+    Filter = fun({{_Module, 0}, _}) -> false;
                 (_Other) -> true
              end,
     Lines2 = lists:filter(Filter, Lines),
@@ -287,6 +296,10 @@ sum({Covered1, Valid1}, {Covered2, Valid2}) ->
 
 rate({_Covered, 0}) -> "0.0";
 rate({Covered, Valid}) -> float_to_list(Covered / Valid, [{decimals, 3}, compact]).
+
+percentage({_Covered, 0}) -> "100.0%";
+percentage({Covered, Valid}) ->
+    float_to_list(100 * Covered / Valid, [{decimals, 1}, compact]) ++ "%".
 
 % lookup source in source directory
 lookup_source(Module) ->

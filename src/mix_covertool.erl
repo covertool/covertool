@@ -8,7 +8,7 @@
 %% ===================================================================
 %% Mix plugin callbacks
 %% ===================================================================
-start( CompilePath, _Opts ) ->
+start( CompilePath, Opts ) ->
     _ = cover:start(),
 
     case cover:compile_beam_directory(binary:bin_to_list(CompilePath)) of
@@ -21,7 +21,9 @@ start( CompilePath, _Opts ) ->
     AppName = proplists:get_value(app, mix_project(config)),
     {ok, SrcDir} = file:get_cwd(),
     BeamDir = binary:bin_to_list(mix_project(compile_path)),
-    Config = #config{appname = AppName, sources = [SrcDir], beams = [BeamDir]},
+    Summary = proplists:get_bool(summary, Opts),
+    Config = #config{appname = AppName, sources = [SrcDir], beams = [BeamDir],
+                     summary = Summary},
 
     fun() ->
         covertool:generate_report(Config, cover:modules())

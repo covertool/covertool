@@ -58,8 +58,10 @@ rebar2_generate(Config, AppFile, ConfigKey) ->
                 {ok, CoverLog} ->
                     cover:import(From),
                     PrefixLen = rebar_config:get_local(Config, covertool_prefix_len, 0),
+                    Summary = rebar_config:get_local(Config, covertool_summary, false),
                     CoverConfig = #config{appname = AppName,
                                           prefix_len = PrefixLen,
+                                          summary = Summary,
                                           output = To},
                     covertool:generate_report(CoverConfig,
                                               cover:imported_modules()),
