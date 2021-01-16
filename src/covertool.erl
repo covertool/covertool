@@ -18,8 +18,6 @@
 -include("covertool.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
--define(EUNIT_DIR, ".eunit").
-
 -record(result, {line = {0, 0},
                  branches = {0, 0},
                  data = []}).
@@ -202,7 +200,7 @@ generate_classes(Modules) ->
                   Class = generate_class(Module),
                   {Class#result.data, sum(Result, Class)}
           end,
-    
+
     % Skip modules without sources
     Filter = fun(Module) ->
                      case lookup_source(Module) of
@@ -224,7 +222,8 @@ generate_class(Module) ->
                           []},
                   {Data, Result#result{line = LineCoverage}}
           end,
-    {ok, Lines} = cover:analyse(Module, calls, line),
+    {ok, Lines0} = cover:analyse(Module, calls, line),
+    Lines = dedup(Lines0),
 
     % XXX: ignore zero-indexed line, for some reason it is always present and always not hit
     Filter = fun({{_Module, 0}, 0}) -> false;
@@ -356,3 +355,10 @@ function_lines(MFA, LinesData) ->
                      Line = proplists:get_value(number, element(2, LineData)),
                      Line > Start andalso Line =< End
                  end, LinesData).
+
+dedup(List) -> dedup(lists:sort(List), []).
+
+dedup([], Agg) -> lists:reverse(Agg);
+dedup([{Pos, C1}, {Pos, C2} | Rest], Agg) ->
+    dedup([{Pos, C1 + C2} | Rest], Agg);
+dedup([Entry | Rest], Agg) -> dedup(Rest, [Entry | Agg]).

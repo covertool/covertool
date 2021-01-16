@@ -25,7 +25,7 @@ init( State ) ->
     NewState = rebar_state:add_provider(State, providers:create(Options)),
     {ok, NewState}.
 
-    
+
 do(State) ->
     OutputFiles = output_files(State),
     InputFiles = input_files(State),
@@ -98,7 +98,7 @@ get_apps(State) ->
     ProjectApps = [app_to_atom(rebar_app_info:name(PA))
                    || PA <- rebar_state:project_apps(State)],
     IncludeApps = include_apps(State),
-    lists:usort(ProjectApps ++ IncludeApps).      
+    lists:usort(ProjectApps ++ IncludeApps).
 
 generate_apps( State, Apps, LogFile ) ->
     Result = lists:foldl( fun(App, Result) -> generate_app(State, App, Result) end, ok, Apps ),
