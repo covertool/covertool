@@ -18,8 +18,6 @@
 -include("covertool.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
--define(EUNIT_DIR, ".eunit").
-
 -record(result, {line = {0, 0},
                  branches = {0, 0},
                  data = []}).
@@ -137,6 +135,15 @@ generate_report(Config, Modules) ->
              {packages, Result#result.data}]},
     Report = xmerl:export_simple([Root], xmerl_xml, [{prolog, Prolog}]),
     write_output(Report, Output),
+    if
+        Config#config.summary ->
+            io:format("Line total: ~s~nBranch total: ~s~n", [
+                                                             percentage(Result#result.line),
+                                                             percentage(Result#result.branches)
+                                                            ]);
+        true ->
+            ok
+    end,
     ok.
 
 generate_packages(AppName, PrefixLen, Modules) ->
@@ -202,7 +209,7 @@ generate_classes(Modules) ->
                   Class = generate_class(Module),
                   {Class#result.data, sum(Result, Class)}
           end,
-    
+
     % Skip modules without sources
     Filter = fun(Module) ->
                      case lookup_source(Module) of
@@ -224,10 +231,11 @@ generate_class(Module) ->
                           []},
                   {Data, Result#result{line = LineCoverage}}
           end,
-    {ok, Lines} = cover:analyse(Module, calls, line),
+    {ok, Lines0} = cover:analyse(Module, calls, line),
+    Lines = dedup(Lines0),
 
-    % XXX: ignore zero-indexed line, for some reason it is always present and always not hit
-    Filter = fun({{_Module, 0}, 0}) -> false;
+    % ignore zero-indexed lines, these are lines for generated code
+    Filter = fun({{_Module, 0}, _}) -> false;
                 (_Other) -> true
              end,
     Lines2 = lists:filter(Filter, Lines),
@@ -288,6 +296,10 @@ sum({Covered1, Valid1}, {Covered2, Valid2}) ->
 
 rate({_Covered, 0}) -> "0.0";
 rate({Covered, Valid}) -> float_to_list(Covered / Valid, [{decimals, 3}, compact]).
+
+percentage({_Covered, 0}) -> "100.0%";
+percentage({Covered, Valid}) ->
+    float_to_list(100 * Covered / Valid, [{decimals, 1}, compact]) ++ "%".
 
 % lookup source in source directory
 lookup_source(Module) ->
@@ -356,3 +368,10 @@ function_lines(MFA, LinesData) ->
                      Line = proplists:get_value(number, element(2, LineData)),
                      Line > Start andalso Line =< End
                  end, LinesData).
+
+dedup(List) -> dedup(lists:sort(List), []).
+
+dedup([], Agg) -> lists:reverse(Agg);
+dedup([{Pos, C1}, {Pos, C2} | Rest], Agg) ->
+    dedup([{Pos, C1 + C2} | Rest], Agg);
+dedup([Entry | Rest], Agg) -> dedup(Rest, [Entry | Agg]).

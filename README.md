@@ -97,6 +97,8 @@ def project do
 end
 ```
 
+If you need, then you can add `summary: true` to print summary on the standard output. Useful in CI tools that can extract total coverage from there.
+
 ## Screenshots
 
 ![Screenshot1](screenshots/shot1.png)
