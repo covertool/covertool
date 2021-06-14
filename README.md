@@ -97,7 +97,11 @@ def project do
 end
 ```
 
-If you need, then you can add `summary: true` to print summary on the standard output. Useful in CI tools that can extract total coverage from there.
+If you need to, you can add `summary: true` to print a summary on standard output. Useful in CI tools that can extract total coverage from there.
+
+#### Mix umbrella project
+
+Make sure to add the `test_coverage: [tool: :covertool]` line to each application's mix file. Multiple coverage.xml files will be generated. You have to use a wildcard to add all of them at once, e.g.: `cobertura coberturaReportFile: 'apps/*/coverage.xml'`
 
 ## Screenshots
 
