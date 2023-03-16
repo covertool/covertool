@@ -101,7 +101,7 @@ generate_report(Config, Modules) ->
         CoverData ->
             cover:import(CoverData)
     end,
-    put(src, Config#config.sources),
+    put(src, [filename:absname(SrcDir) || SrcDir <- Config#config.sources]),
     put(ebin, Config#config.beams),
     io:format("Generating report '~s'...~n", [Output]),
     Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
@@ -120,7 +120,7 @@ generate_report(Config, Modules) ->
     {BranchesCovered, BranchesValid} = Result#result.branches,
     BranchRate = rate(Result#result.branches),
 
-    Sources = [{source, [filename:absname(SrcDir)]} || SrcDir <- get(src)],
+    Sources = [{source, [SrcDir]} || SrcDir <- get(src)],
 
     Root = {coverage, [{timestamp, Timestamp},
                        {'line-rate', LineRate},
