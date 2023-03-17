@@ -27,8 +27,7 @@ main([]) ->
 main(Args) ->
     Config = process_args(Args, #config{}),
     CoverData = Config#config.cover_data,
-    io:format("Importing '~s' data file...~n", [CoverData]),
-    cover:import(CoverData),
+    cover_import(CoverData),
     Modules = cover:imported_modules(),
     io:format("Found ~w modules.~n", [length(Modules)]),
     generate_report(Config#config{cover_data = no_import}, Modules),
@@ -91,16 +90,28 @@ update_config(_Other, _Value, _Config) ->
     usage(),
     halt(1).
 
+cover_import(no_import) ->
+    ok;
+cover_import(CoverData) ->
+    case filelib:is_dir(CoverData) of
+        true -> 
+            {ok, CoverFiles} = file:list_dir(CoverData),
+            [cover_import(filename:join(CoverData, CoverFile)) || CoverFile <- CoverFiles];
+        false ->
+            case filename:extension(CoverData) of
+                ".coverdata" ->
+                    io:format("Importing '~s' data file...~n", [CoverData]),
+                    cover:import(CoverData);
+                _ ->
+                    ok
+            end
+    end.
+
 generate_report(Config, Modules) ->
     AppName = Config#config.appname,
     PrefixLen = Config#config.prefix_len,
     Output = Config#config.output,
-    case Config#config.cover_data of
-        no_import ->
-            ok;
-        CoverData ->
-            cover:import(CoverData)
-    end,
+    cover_import(Config#config.cover_data),
     put(src, [filename:absname(SrcDir) || SrcDir <- Config#config.sources]),
     put(ebin, Config#config.beams),
     io:format("Generating report '~s'...~n", [Output]),
