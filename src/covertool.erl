@@ -98,8 +98,13 @@ cover_import(CoverData) ->
             {ok, CoverFiles} = file:list_dir(CoverData),
             [cover_import(filename:join(CoverData, CoverFile)) || CoverFile <- CoverFiles];
         false ->
-            io:format("Importing '~s' data file...~n", [CoverData]),
-            cover:import(CoverData)
+            case filename:extension(CoverData) of
+                ".coverdata" ->
+                    io:format("Importing '~s' data file...~n", [CoverData]),
+                    cover:import(CoverData);
+                _ ->
+                    ok
+            end
     end.
 
 generate_report(Config, Modules) ->
