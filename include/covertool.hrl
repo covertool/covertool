@@ -4,4 +4,6 @@
                  output = "coverage.xml",
                  summary = false,
                  sources = ["src/"],
-                 beams = ["ebin/"]}).
+                 beams = ["ebin/"],
+                 lookup_source = no_callback :: no_callback | fun((module()) -> string() | false)
+                }).
