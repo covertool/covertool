@@ -114,6 +114,7 @@ generate_report(Config, Modules) ->
     cover_import(Config#config.cover_data),
     put(src, [filename:absname(SrcDir) || SrcDir <- Config#config.sources]),
     put(ebin, Config#config.beams),
+    put(lookup_source, Config#config.lookup_source),
     io:format("Generating report '~s'...~n", [Output]),
     Prolog = ["<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
               "<!DOCTYPE coverage SYSTEM \"http://cobertura.sourceforge.net/xml/coverage-04.dtd\">\n"],
@@ -314,7 +315,12 @@ percentage({Covered, Valid}) ->
 
 % lookup source in source directory
 lookup_source(Module) ->
-    lookup_source(get(ebin), Module).
+    case get(lookup_source) of
+        no_callback ->
+            lookup_source(get(ebin), Module);
+        Fn ->
+            Fn(Module)
+    end.
 
 lookup_source([EbinDir | RDirs], M) ->
     Beam = io_lib:format("~s/~s.beam", [EbinDir, M]),
