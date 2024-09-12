@@ -11,14 +11,14 @@ on:
       -[0-9]+\.[0-9]+\.[0-9]+
 jobs:
   ci:
-    name: Run checks, tests, and docs over ${{matrix.otp_vsn}} and ${{matrix.os}}
+    name: test otp ${{matrix.otp_vsn}} and ${{matrix.os}}
     runs-on: ${{matrix.os}}
     container:
       image: erlang:${{matrix.otp_vsn}}
     strategy:
       matrix:
-        otp_vsn: [20.3, 21.3, 22.3, 23.1, 24.0, 25.1]
+        otp_vsn: [20, 21, 22, 23, 24, 25, 26, 27]
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: make
