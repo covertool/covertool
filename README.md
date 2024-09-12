@@ -1,7 +1,6 @@
-# Cover-to-Cobertura Conversion Tool 
+# Cover-to-Cobertura Conversion Tool
 
 [![Build Status](https://github.com/covertool/covertool/workflows/build/badge.svg)](https://github.com/covertool/covertool/actions?query=workflow:build)
-
 [![Hex.pm version](https://img.shields.io/hexpm/v/covertool.svg?style=flat)](https://hex.pm/packages/covertool)
 
 A simple tool to convert exported Erlang `cover` data sets into Cobertura XML
@@ -17,7 +16,7 @@ This change was made to make the applications more straightforward to integrate 
 
 ## Usage
 
-1. Install Jenkins Cobertura Plug-in.
+1. Install [Jenkins Cobertura Plug-in](https://plugins.jenkins.io/cobertura/).
 2. Pick one of the options below ([standalone](#standalone)/[rebar](#rebar)/[rebar3](#rebar3)/[mix](#mix))
 3. Configure "Publish Cobertura Coverage Report" post-build action, set path
 to the generated `coverage.xml`
@@ -27,22 +26,28 @@ to the generated `coverage.xml`
 
 1. Build command line script (WARNING: EUnit test for plugin may fail for OTP =< 17.3, due to a bug in `cover` app)
 
-        $ make
+   ```console
+   make
+   ```
 
 2. Configure `cover` to export data. Sample cover.spec for `Common Test`:
 
-        {incl_app, app0, details}.
-        {export, "all.coverdata"}.
+   ```erlang
+   {incl_app, app0, details}.
+   {export, "all.coverdata"}.
+   ```
 
 3. Configure Jenkins to convert `cover` reports into `Cobertura` format:
-  
-        $ covertool -cover all.coverdata -output coverage.xml -src src/
+
+   ```console
+   covertool -cover all.coverdata -output coverage.xml -src src/
+   ```
 
 ### Rebar
 
 Configure rebar to generate reports in `Cobertura` format:
 
-```
+```erlang
 {deps, [
     {covertool, "", {git, "https://github.com/covertool/covertool.git", {branch, master}}}
 ]}.
@@ -59,7 +64,7 @@ The `covertool_prefix_len` option allows including the first *n* sections of the
 
 Configure rebar3 to generate reports in `Cobertura` format:
 
-```
+```erlang
 {project_plugins, [covertool]}.
 % Alternate form (w/o Hex):
 % {project_plugins, [
@@ -75,13 +80,13 @@ The `include_apps` option allows specifying a list of dependent OTP applications
 
 The `include_apps` option can also be specified via the command line as a CSV of application names, e.g.:
 
-```
+```console
 rebar3 covertool generate -a"dep0,dep1"
 ```
 
 The `prefix_len` option allows including the first *n* sections of the '_'-delimited module name in the package name. For example, with a `prefix_len` of 2 and a module named `app0_worker_srv_sup`, the term `app0.worker` would be added to the end of the package name. Defaults to 0 (no module prefix included). This option can also be specified via the command line, e.g.:
 
-```
+```console
 rebar3 covertool generate -p2
 ```
 
